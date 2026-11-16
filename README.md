@@ -37,6 +37,7 @@ folder `--files` names; copy it as you would any folder.
 | `--db` | `PEEK_DB` | `~/.local/share/peek/peek.db` | The SQLite catalog. |
 | `--files` | `PEEK_FILES` | `~/.local/share/peek/files` | The folder the files live in. |
 | `--public-url` | `PEEK_PUBLIC_URL` | the address each request came to | The base every `link`, `fileUrl` and `uploadUrl` is built on. |
+| `--task-url` | `PEEK_TASK_URL` | none | A task's page, `{task}` standing for its id (`https://tasks.example.com/items/{task}`). The viewer links an asset's task there; with none, the task is shown unlinked. |
 | | `PEEK_ADMIN_TOKEN` | none | One more token, named `admin`, beside those made with `peek token`. |
 
 `peek --help` lists the commands.
@@ -69,12 +70,26 @@ Its `upload_asset` takes a small file inline, in base64. For a larger one it
 answers an upload URL and the `curl -T <file> '<uploadUrl>'` to run: that URL
 needs no token, works once, and stops working after an hour.
 
+## View it
+
+Open peek's address in a browser. `/` is the gallery, newest first, with
+filters for repository, pull request, task, type and text. The filters are
+kept in the address, so `/?repo=owner/name&pr=12` is a link to one pull
+request's files. `/a/<id>` (an asset's `link`) shows an image fitted to the
+screen, or plays a video or audio file in the page, with what the asset is of
+and a button to copy its link. Both work on a phone.
+
+Sign in once per browser with a token, in the page's form or by opening a
+link that ends `#signin=<token>` (after a path too: `/#/a/<id>&signin=<token>`).
+The page drops the token from the address at once. The browser then stays
+signed in for 90 days, or until that token is revoked.
+
 ## How it works
 
 - **Signing in.** Every call but `/health`, `PutUpload`, the docs and the
   viewer page takes `Authorization: Bearer <token>`. A browser signs in once
   (`POST /api/session`, or opening a link that ends `#signin=<token>`), which
-  sets a cookie, so images, videos and audio load in the page. A write
+  sets a cookie for 90 days, so images, videos and audio load in the page. A write
   signed in by the cookie alone must also send `x-peek: 1`.
 - **Who uploaded it.** An asset's `createdBy` is the `x-actor` header the
   upload sent, else the token's name.

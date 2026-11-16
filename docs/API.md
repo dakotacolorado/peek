@@ -40,7 +40,7 @@ Keeps an agent's images, videos and audio where it made them, and serves them ba
 
 ## CreateSession
 
-Signs a browser in: sets the `peek_session` cookie (HttpOnly, Secure, SameSite=Lax), which every other call then takes in place of the bearer token, for 30 days or until the token is revoked. A write signed in by the cookie alone must also send `x-peek: 1`.
+Signs a browser in: sets the `peek_session` cookie (HttpOnly, Secure, SameSite=Lax), which every other call then takes in place of the bearer token, for 90 days or until the token is revoked. A write signed in by the cookie alone must also send `x-peek: 1`.
 
 ### Request syntax
 
@@ -223,6 +223,7 @@ Content-type: application/json
    "createdBy": "string",
    "createdAt": "string",
    "link": "string",
+   "taskLink": "string",
    "fileUrl": "string"
 }
 ```
@@ -284,6 +285,10 @@ Type: String.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
@@ -383,6 +388,7 @@ Content-type: application/json
    "createdBy": "string",
    "createdAt": "string",
    "link": "string",
+   "taskLink": "string",
    "fileUrl": "string"
 }
 ```
@@ -444,6 +450,10 @@ Type: String.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
@@ -632,6 +642,7 @@ Content-type: application/json
       "createdBy": "string",
       "createdAt": "string",
       "link": "string",
+      "taskLink": "string",
       "fileUrl": "string"
    } ],
    "nextToken": "string"
@@ -729,6 +740,7 @@ Content-type: application/json
    "createdBy": "string",
    "createdAt": "string",
    "link": "string",
+   "taskLink": "string",
    "fileUrl": "string"
 }
 ```
@@ -790,6 +802,10 @@ Type: String.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
@@ -851,6 +867,7 @@ Content-type: application/json
    "createdBy": "string",
    "createdAt": "string",
    "link": "string",
+   "taskLink": "string",
    "fileUrl": "string"
 }
 ```
@@ -912,6 +929,10 @@ Type: String.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
@@ -1003,6 +1024,7 @@ Content-type: application/json
    "createdBy": "string",
    "createdAt": "string",
    "link": "string",
+   "taskLink": "string",
    "fileUrl": "string"
 }
 ```
@@ -1064,6 +1086,10 @@ Type: String.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
@@ -1148,6 +1174,10 @@ Type: String. Required: Yes.
 **link**  
 Its page, which shows or plays it in the browser: the link to give the person.  
 Type: String. Required: Yes.
+
+**taskLink**  
+Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
+Type: String. Nullable: Yes. Required: Yes.
 
 **fileUrl**  
 Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  

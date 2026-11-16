@@ -62,7 +62,7 @@ export const INLINE_MAX = 16_000_000;
 /** How long an upload URL can be used, once. */
 export const TICKET_SECONDS = 60 * 60;
 /** How long a browser stays signed in. */
-export const SESSION_SECONDS = 30 * 24 * 60 * 60;
+export const SESSION_SECONDS = 90 * 24 * 60 * 60;
 
 /** A file name: no path, no control characters, not `.` or `..`. */
 export const FILE_NAME = /^(?!\.{1,2}$)[^/\\\u0000-\u001f\u007f]+$/;

@@ -8,17 +8,46 @@
     <script type="module" src="/ui/app.js"></script>
   </head>
   <body>
-    <main id="main">
-      <h1 id="title">peek</h1>
+    <header>
+      <a class="brand" href="/">peek</a>
+      <nav><a href="/docs/api">API</a> <a href="/docs/mcp">MCP</a></nav>
+    </header>
+    <main>
       <p id="status">Loading…</p>
-      <div id="media"></div>
-      <p id="details"></p>
       <form id="signin" hidden>
         <label for="token">Sign in with a peek token</label>
         <input id="token" type="password" autocomplete="current-password" required />
         <button type="submit">Sign in</button>
       </form>
-      <p class="docs"><a href="/docs/api">API</a> · <a href="/docs/mcp">MCP</a></p>
+      <section id="gallery" hidden>
+        <form id="filters">
+          <input name="repo" placeholder="owner/repo" aria-label="Repository" autocapitalize="off" />
+          <input name="pr" placeholder="PR" aria-label="Pull request" inputmode="numeric" />
+          <input name="task" placeholder="Task" aria-label="Task" autocapitalize="off" />
+          <select name="type" aria-label="Type">
+            <option value="">Any type</option>
+            <option value="image">Images</option>
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+          </select>
+          <input name="q" type="search" placeholder="Search names, titles" aria-label="Text" />
+          <button type="submit">Filter</button>
+          <a id="clear" class="button" href="/">Clear</a>
+        </form>
+        <ul id="grid"></ul>
+        <button id="more" type="button" hidden>More</button>
+      </section>
+      <article id="viewer" hidden>
+        <div id="media"></div>
+        <h1 id="title"></h1>
+        <p id="description"></p>
+        <div class="actions">
+          <button id="copy" type="button">Copy link</button>
+          <a id="open" class="button">Open file</a>
+          <a id="siblings" class="button" hidden></a>
+        </div>
+        <dl id="details"></dl>
+      </article>
     </main>
   </body>
 </html>

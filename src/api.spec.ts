@@ -53,7 +53,7 @@ describe("auth", () => {
     const asset = await t.put("a.png", bytes(10));
     const { res, cookie, header } = await signIn(t);
     expect(await res.json()).toMatchObject({ name: "agent" });
-    expect(cookie).toMatch(/^peek_session=[\w-]{32}; Path=\/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax$/);
+    expect(cookie).toMatch(/^peek_session=[\w-]{32}; Path=\/; Max-Age=7776000; HttpOnly; Secure; SameSite=Lax$/);
     expect((await t.fetch(new URL(asset.fileUrl).pathname, { headers: header })).status).toBe(200);
     expect((await t.fetch(`/api/assets/${asset.id}`, { headers: header })).status).toBe(200);
     expect((await t.fetch(new URL(asset.fileUrl).pathname, { headers: { cookie: "peek_session=forged" } })).status).toBe(401);
@@ -113,6 +113,13 @@ describe("PutAsset", () => {
     const t = setup();
     const res = await t.fetch("/api/assets?name=a.png", { method: "PUT", headers: { ...t.bearer(), "x-forwarded-proto": "https", "x-forwarded-host": "host.example.com:8450" }, body: "x" });
     expect(((await res.json()) as { link: string }).link).toMatch(/^https:\/\/host\.example\.com:8450\/a\//);
+  });
+
+  it("links an asset's task on the task URL when one is set, else not", async () => {
+    const linked = setup({ taskUrl: "https://ui.example.com/items/{task}" });
+    expect((await linked.put("a.png", "x", { task: "75d018b6" })).taskLink).toBe("https://ui.example.com/items/75d018b6");
+    expect((await linked.put("b.png", "x")).taskLink).toBeNull();
+    expect((await setup().put("a.png", "x", { task: "75d018b6" })).taskLink).toBeNull();
   });
 
   it("takes the request's content type, else the name's", async () => {

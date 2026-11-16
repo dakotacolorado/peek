@@ -14,6 +14,8 @@ export interface Config {
   adminToken: string | null;
   /** The base every link is built on. */
   publicUrl: string | null;
+  /** A task's page, `{task}` standing for its id. */
+  taskUrl?: string | null;
 }
 
 export interface Running {
@@ -28,6 +30,6 @@ export function start(config: Config): Running {
   mkdirSync(config.files, { recursive: true });
   const store = Store.open(config.db);
   const peek = new Peek(store, new DiskFiles(config.files));
-  const api = new PeekApi(peek, { version: PACKAGE_VERSION, commit: buildOf().commit }, { adminToken: config.adminToken, publicUrl: config.publicUrl });
+  const api = new PeekApi(peek, { version: PACKAGE_VERSION, commit: buildOf().commit }, { adminToken: config.adminToken, publicUrl: config.publicUrl, taskUrl: config.taskUrl ?? null });
   return { api, peek, store, close: () => store.close() };
 }

@@ -30,6 +30,8 @@ Options:
   --files <dir>       the folder the files live in (default ~/.local/share/peek/files, or PEEK_FILES)
   --public-url <url>  the base every link is built on (default the address each request came to,
                       or PEEK_PUBLIC_URL)
+  --task-url <url>    a task's page, {task} standing for its id, so the viewer links an asset's
+                      task (default none, or PEEK_TASK_URL)
   -h, --help          this
 
 Environment:
@@ -47,6 +49,7 @@ const { values, positionals } = parseArgs({
     db: { type: "string" },
     files: { type: "string" },
     "public-url": { type: "string" },
+    "task-url": { type: "string" },
     dev: { type: "boolean" },
     help: { type: "boolean", short: "h" },
   },
@@ -124,9 +127,12 @@ const files = resolve(values.files ?? env.PEEK_FILES ?? join(data, "files"));
 const publicUrl = (values["public-url"] ?? env.PEEK_PUBLIC_URL ?? "").replace(/\/+$/, "") || null;
 if (publicUrl && !/^https?:\/\/[^/]+(\/.*)?$/.test(publicUrl)) fail(`--public-url must be an http(s) URL, not ${publicUrl}`);
 
+const taskUrl = values["task-url"] ?? env.PEEK_TASK_URL ?? null;
+if (taskUrl && !/^https?:\/\/[^/]+\/.*\{task\}/.test(taskUrl)) fail(`--task-url must be an http(s) URL holding {task}, not ${taskUrl}`);
+
 const dev = values.dev === true;
 const adminToken = env.PEEK_ADMIN_TOKEN || (dev ? "dev" : null);
-const running = start({ db: path, files, adminToken, publicUrl });
+const running = start({ db: path, files, adminToken, publicUrl, taskUrl });
 const shown = (at: number) => `http://${host.includes(":") ? `[${host}]` : host}:${at}`;
 // Node ends a request after 5 minutes by default, which a large upload outlasts.
 const server = serve({ fetch: running.api.fetch, hostname: host, port, serverOptions: { requestTimeout: 0 } }, (info) => {

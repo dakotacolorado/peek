@@ -46,6 +46,8 @@ export interface ApiOptions {
   adminToken: string | null;
   /** The base every link is built on; else the address each request came to. */
   publicUrl: string | null;
+  /** A task's page, `{task}` standing for its id; null links no task. */
+  taskUrl?: string | null;
 }
 
 /** Who a request is from, and how it showed it. */
@@ -144,7 +146,9 @@ export class PeekApi {
 
   private shown(c: Context, asset: Asset) {
     const base = this.base(c);
-    return { ...asset, link: `${base}/a/${asset.id}`, fileUrl: `${base}/f/${asset.id}/${encodeURIComponent(asset.name)}` };
+    const taskUrl = this.options.taskUrl;
+    const taskLink = taskUrl && asset.task ? taskUrl.replaceAll("{task}", encodeURIComponent(asset.task)) : null;
+    return { ...asset, link: `${base}/a/${asset.id}`, taskLink, fileUrl: `${base}/f/${asset.id}/${encodeURIComponent(asset.name)}` };
   }
 
   private routes(): void {
