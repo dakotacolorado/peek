@@ -1,6 +1,8 @@
 // peek's page: the gallery at /, filtered by the address's query, and the viewer at /a/<id>.
 // A shell, the same for every asset and holding no data: it signs the browser in, then fetches
 // what it shows. Every element is made with `h`, which sets text, never HTML.
+import { LETTERS, MARK_PIXELS, SUMMARY, TAGLINE } from "./banner.js";
+
 const $ = (id) => document.getElementById(id);
 
 /** Filters the address keeps, each to `ListAssets`'s query; `type` is a media type's first part. */
@@ -11,6 +13,33 @@ function h(tag, attrs = {}, ...children) {
   for (const [name, value] of Object.entries(attrs)) if (value !== null && value !== undefined && value !== false) node.setAttribute(name, value === true ? "" : String(value));
   node.append(...children.filter((child) => child !== null && child !== undefined && child !== false));
   return node;
+}
+
+/** The mark drawn from banner.ts's pixel grid, a square a pixel, so it is the terminal's mark. */
+function pixelMark() {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  for (const [name, value] of Object.entries({ viewBox: `0 0 ${MARK_PIXELS[0].length} ${MARK_PIXELS.length}`, "shape-rendering": "crispEdges", fill: "currentColor", "aria-hidden": "true" })) svg.setAttribute(name, value);
+  MARK_PIXELS.forEach((row, y) =>
+    [...row].forEach((pixel, x) => {
+      if (pixel !== "#") return;
+      const rect = document.createElementNS(NS, "rect");
+      for (const [name, value] of Object.entries({ x, y, width: 1, height: 1 })) rect.setAttribute(name, String(value));
+      svg.append(rect);
+    }),
+  );
+  return svg;
+}
+
+/** The block-letter name with the mark beside it, the tagline and the summary: atop the gallery, small, and the sign-in. */
+function landing(small) {
+  $("landing").className = `landing${small ? " small" : ""}`;
+  $("landing").replaceChildren(
+    h("a", { class: "wordmark", href: "/", "aria-label": "peek" }, h("pre", { "aria-hidden": "true" }, LETTERS), pixelMark()),
+    h("p", { class: "tagline" }, TAGLINE),
+    h("p", { class: "summary" }, SUMMARY),
+  );
+  $("landing").hidden = false;
 }
 
 function say(text) {
@@ -38,6 +67,7 @@ async function get(path) {
   const res = await fetch(path);
   if (res.status === 401) {
     say("Sign in to see this.");
+    landing(false);
     $("signin").hidden = false;
     $("token").focus();
     return null;
@@ -101,6 +131,7 @@ async function loadPage(given, token) {
   const page = await get(`/api/assets?${query(given, token)}`);
   if (!page) return;
   $("gallery").hidden = false;
+  landing(true);
   $("grid").append(...page.assets.map(tile));
   nextToken = page.nextToken;
   $("more").hidden = !nextToken;
@@ -200,6 +231,7 @@ async function copy(text) {
 
 async function show(run) {
   $("signin").hidden = true;
+  if (!run) $("landing").hidden = true;
   try {
     if (run) return await run();
     const id = /^\/a\/([\w-]{12})$/.exec(location.pathname)?.[1];
@@ -226,5 +258,6 @@ window.addEventListener("popstate", () => show());
 if (await signInFromLink()) await show();
 else {
   say("That sign-in link's token is wrong or revoked.");
+  landing(false);
   $("signin").hidden = false;
 }

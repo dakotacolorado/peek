@@ -1,10 +1,11 @@
 import { getOpenApiMetadata } from "@asteasolutions/zod-to-openapi";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@hono/zod-openapi";
+import { TAGLINE } from "./banner.ts";
 import { INLINE_MAX } from "./domain.ts";
 import * as routes from "./schema.ts";
 
-export const INSTRUCTIONS = `peek keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
+export const INSTRUCTIONS = `peek: ${TAGLINE} It keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
 
 - upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
 - Give the person link, never fileUrl: link is the page that plays it.
