@@ -1,0 +1,22 @@
+node_modules/
+*.tsbuildinfo
+.DS_Store
+.env
+.claude/*
+!.claude/skills/
+
+# Agent harness files: written into a worktree by the rig, never part of a change.
+HANDOFF.md
+VALIDATION.md
+INTEGRATION.md
+TRAIN.md
+.worker-prompt.md
+.worker-log.txt
+.validator-prompt.md
+.validator-log.txt
+.fix-prompt.md
+.fix-log.txt
+.integrator-prompt.md
+.integrator-log.txt
+dist/
+.peek-dev*
