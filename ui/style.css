@@ -1,0 +1,12 @@
+body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1d1d1b; background: #fafaf7; }
+main { max-width: 960px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 20px; margin: 0 0 8px; overflow-wrap: anywhere; }
+#media img, #media video { max-width: 100%; max-height: 80vh; display: block; background: #000; }
+#media audio { width: 100%; }
+#details { color: #55554f; font-size: 14px; overflow-wrap: anywhere; }
+form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+form label { width: 100%; }
+input, button, #media a { min-height: 44px; font-size: 16px; }
+input { flex: 1; min-width: 0; padding: 0 8px; }
+button { padding: 0 16px; }
+.docs { font-size: 13px; }
