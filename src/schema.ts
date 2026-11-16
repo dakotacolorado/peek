@@ -34,6 +34,7 @@ export const AssetSchema = z
     createdBy: z.string().describe("Who uploaded it: the uploader's `x-actor` header, else its token's name."),
     createdAt: z.string().describe("Uploaded at (ISO 8601)."),
     link: z.string().describe("Its page, which shows or plays it in the browser: the link to give the person."),
+    taskLink: z.string().nullable().describe("Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null."),
     fileUrl: z.string().describe("Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token."),
   })
   .describe("A file peek keeps, and what it is of.")
@@ -320,7 +321,7 @@ export const createSessionRoute = createRoute({
   operationId: "CreateSession",
   summary: "Create a session",
   description:
-    "Signs a browser in: sets the `peek_session` cookie (HttpOnly, Secure, SameSite=Lax), which every other call then takes in place of the bearer token, for 30 days or until the token is revoked. A write signed in by the cookie alone must also send `x-peek: 1`.",
+    "Signs a browser in: sets the `peek_session` cookie (HttpOnly, Secure, SameSite=Lax), which every other call then takes in place of the bearer token, for 90 days or until the token is revoked. A write signed in by the cookie alone must also send `x-peek: 1`.",
   responses: { 200: json(SessionSchema, "Signed in."), 401: fails(401, "The bearer token is missing, wrong or revoked.") },
 });
 
