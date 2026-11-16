@@ -20,3 +20,4 @@ TRAIN.md
 .integrator-log.txt
 dist/
 .peek-dev*
+scratch/

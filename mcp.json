@@ -1,0 +1,312 @@
+{
+  "instructions": "peek keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.\n\n- upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.\n- Give the person link, never fileUrl: link is the page that plays it.\n- list_assets finds what was uploaded, newest first, by repo, pr, task, tags, contentType prefix (video/), createdBy or text in q; pass nextToken for the next page.\n- update_asset changes what an asset is of; delete_asset removes it and its file.\n- Every tool takes the token this server was connected with.",
+  "tools": [
+    {
+      "name": "upload_asset",
+      "title": "Upload an asset",
+      "description": "Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000-\\u001f\\u007f]+$",
+            "description": "The file's name, with its extension: no path."
+          },
+          "contentType": {
+            "description": "Its media type, such as `video/mp4`. Default: the name's extension's.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "title": {
+            "description": "What it shows, in a few words.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "description": "More on what it shows, or what to look for.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "repo": {
+            "description": "The GitHub repository it is for, as `owner/name`.",
+            "type": "string",
+            "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+          },
+          "pr": {
+            "description": "The pull request it is for, in `repo`.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "task": {
+            "description": "The waypoint task it is for, by its short id.",
+            "type": "string",
+            "pattern": "^[\\w-]{1,64}$"
+          },
+          "tags": {
+            "description": "Tags, at most 20.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[^,\\u0000-\\u001f\\u007f]+$",
+              "description": "A tag: any text without a comma."
+            }
+          },
+          "content": {
+            "description": "The file, in base64, for a small one (at most 16,000,000 characters, about 12 MB). Leave it out to be given an uploadUrl and a curl command that uploads the file from your shell instead.",
+            "type": "string",
+            "maxLength": 16000000,
+            "format": "base64",
+            "contentEncoding": "base64",
+            "pattern": "^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "list_assets",
+      "title": "List assets",
+      "description": "Assets matching every filter given, newest first, a page at a time: while `nextToken` is not null, pass it for the next page.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "repo": {
+            "description": "Only those for this repository.",
+            "type": "string",
+            "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+          },
+          "pr": {
+            "description": "Only those for this pull request.",
+            "type": "number"
+          },
+          "task": {
+            "description": "Only those for this waypoint task.",
+            "type": "string",
+            "pattern": "^[\\w-]{1,64}$"
+          },
+          "tags": {
+            "description": "Only those carrying every one of these tags.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contentType": {
+            "description": "Only those whose media type starts with this, such as `video/` or `image/png`.",
+            "type": "string",
+            "maxLength": 200
+          },
+          "createdBy": {
+            "description": "Only those uploaded by this caller.",
+            "type": "string",
+            "maxLength": 100
+          },
+          "q": {
+            "description": "Only those whose name, title or description holds this text, ignoring case.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxResults": {
+            "default": 50,
+            "description": "The most to answer. Default: 50.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "nextToken": {
+            "description": "The `nextToken` a page answered, for the page after it.",
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_asset",
+      "title": "Get an asset",
+      "description": "An asset, with its `link` and `fileUrl`.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[\\w-]{12}$",
+            "description": "The asset's id: 12 URL-safe characters."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "update_asset",
+      "title": "Update an asset",
+      "description": "Sets what an asset is of: the fields given, leaving the rest. Its bytes and name do not change.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[\\w-]{12}$",
+            "description": "The asset's id: 12 URL-safe characters."
+          },
+          "title": {
+            "description": "What it shows, in a few words; null clears it.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "description": "More on what it shows; null clears it.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "More on what it shows, or what to look for."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repo": {
+            "description": "The repository it is for, as `owner/name`; null clears it.",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[\\w.-]+\\/[\\w.-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pr": {
+            "description": "The pull request it is for; null clears it.",
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task": {
+            "description": "The waypoint task it is for; null clears it.",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[\\w-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "description": "Its tags, replacing those it had.",
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[^,\\u0000-\\u001f\\u007f]+$",
+              "description": "A tag: any text without a comma."
+            }
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "delete_asset",
+      "title": "Delete an asset",
+      "description": "Removes the asset from the catalog, then its file. Its link and file URL answer 404 after.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[\\w-]{12}$",
+            "description": "The asset's id: 12 URL-safe characters."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}
