@@ -5,6 +5,7 @@ import { getCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { LETTERS_ONLY, MARK_ICON, MARK_PIXELS, SUMMARY, TAGLINE } from "./banner.ts";
 import { creatorOf, INLINE_MAX, newSecret, rangeOf, RequestError, SESSION_SECONDS, type Asset } from "./domain.ts";
 import { DOCS_URL, mcpServer, type Call } from "./mcp.ts";
 import * as routes from "./schema.ts";
@@ -21,7 +22,7 @@ export const API_VERSION = "2026-11-15";
 export const SESSION_COOKIE = "peek_session";
 
 /** The API's overview, at the top of its reference. Markdown. */
-export const OVERVIEW = `Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too. Each host runs its own peek: the files stay on the disk where they were made, with a catalog of them to search.
+export const OVERVIEW = `${SUMMARY} **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too. Each host runs its own peek: the files stay on the disk where they were made, with a catalog of them to search.
 
 - **Upload** with \`PutAsset\`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (\`CreateUploadUrl\`), and runs the \`curl\` it answers: the file never passes through the model, and the command needs no token.
 - **Find** with \`ListAssets\`, by repository, pull request, task, tags, media type, uploader or text, newest first.
@@ -280,6 +281,10 @@ export class PeekApi {
     this.hono.get("/a/:id", shell);
     this.hono.get("/ui/app.js", page("ui/app.js", "text/javascript"));
     this.hono.get("/ui/style.css", page("ui/style.css", "text/css"));
+    // The page's words and mark are banner.ts's own, so the terminal, the page and the tab cannot differ.
+    const words = Object.entries({ LETTERS: LETTERS_ONLY, MARK_PIXELS, TAGLINE, SUMMARY }).map(([name, value]) => `export const ${name} = ${JSON.stringify(value)};\n`).join("");
+    this.hono.get("/ui/banner.js", (c) => c.body(words, 200, { "content-type": "text/javascript; charset=utf-8" }));
+    this.hono.get("/ui/mark.svg", (c) => c.body(MARK_ICON, 200, { "content-type": "image/svg+xml; charset=utf-8" }));
     this.hono.get("/docs/api", page("docs/index.html", "text/html"));
     this.hono.get("/mcp.json", page("mcp.json", "application/json"));
     // The docs' example address is a placeholder; served, they give the address they were reached at.

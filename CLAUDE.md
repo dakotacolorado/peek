@@ -55,6 +55,7 @@ status's exception name (`ERROR_CODES`): tests hold all of it.
 - `src/service.ts`: `Peek`: put (file, then row), update, delete (row, then file), upload tickets.
 - `src/files.ts`: `Files`, the bytes by id and name, and `DiskFiles`. Another backend is another class.
 - `src/store.ts`: SQLite. A new shape is a new entry appended to `MIGRATIONS`, never an edit to one.
+- `src/banner.ts`: the tagline, summary, block letters and eye mark: the terminal banner, the page's header, landing and favicon all take them from here.
 - `src/api.ts`: routes, auth, the file route's ranges, `/mcp` (stateless, each tool one in-process API request with the caller's own headers).
 - `src/integ.ts`: `npm run integ`, end to end against a running instance; not part of `npm test`.
 

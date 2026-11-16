@@ -5,14 +5,14 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { banner, SUMMARY, TAGLINE } from "./banner.ts";
 import { PACKAGE_VERSION } from "./build.ts";
 import { TOKEN_NAME } from "./domain.ts";
 import { start } from "./server.ts";
 import { Store } from "./store.ts";
 
-export const TAGLINE = "Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.";
-
 const USAGE = `peek v${PACKAGE_VERSION}: ${TAGLINE}
+${SUMMARY}
 
 Usage:
   peek [serve] [--dev] [options]   run the server; --dev takes the admin token "dev" when PEEK_ADMIN_TOKEN is unset
@@ -136,16 +136,12 @@ const running = start({ db: path, files, adminToken, publicUrl, taskUrl });
 const shown = (at: number) => `http://${host.includes(":") ? `[${host}]` : host}:${at}`;
 // Node ends a request after 5 minutes by default, which a large upload outlasts.
 const server = serve({ fetch: running.api.fetch, hostname: host, port, serverOptions: { requestTimeout: 0 } }, (info) => {
-  const lines = [
-    `peek v${PACKAGE_VERSION}: ${TAGLINE}`,
-    `  listening on ${shown(info.port)}`,
-    `  links to     ${publicUrl ?? "the address each request came to"}`,
-    `  catalog      ${path}`,
-    `  files        ${files}`,
-    ...(dev && !env.PEEK_ADMIN_TOKEN ? ['  Sign in with the admin token "dev".'] : []),
-    ...(!adminToken && !running.store.tokens().length ? ["  No token: set PEEK_ADMIN_TOKEN, or make one with peek token create <name>."] : []),
+  const notes = [
+    ...(dev && !env.PEEK_ADMIN_TOKEN ? ['Sign in with the admin token "dev".'] : []),
+    ...(!adminToken && !running.store.tokens().length ? ["No token: set PEEK_ADMIN_TOKEN, or make one with peek token create <name>."] : []),
   ];
-  say(lines.join("\n"));
+  const color = Boolean(process.stdout.isTTY) && !env.NO_COLOR;
+  process.stdout.write(banner({ version: PACKAGE_VERSION, url: shown(info.port), publicUrl: publicUrl ?? shown(info.port), db: path, files, notes, color }));
 });
 
 server.on("error", (err) => {

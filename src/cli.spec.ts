@@ -41,8 +41,10 @@ describe("peek serve", () => {
   it("serves the catalog and files it is given, taking PEEK_ADMIN_TOKEN", async () => {
     const dir = temp();
     const { url, out } = await serve(["serve"], { PEEK_DB: join(dir, "db", "peek.db"), PEEK_FILES: join(dir, "files"), PEEK_ADMIN_TOKEN: "scratch", PEEK_PUBLIC_URL: "https://peek.example.com/" });
-    expect(out()).toContain("Keeps an agent's images, videos and audio where it made them");
-    expect(out()).toContain("links to     https://peek.example.com\n");
+    expect(out()).toContain("See what your agents made, wherever you are.");
+    expect(out()).toContain("  ▸ Page      https://peek.example.com/\n");
+    // Piped, as here, it paints nothing.
+    expect(out()).not.toContain("\x1b");
     expect(existsSync(join(dir, "db", "peek.db"))).toBe(true);
     expect(await (await fetch(`${url}/health`)).json()).toMatchObject({ ok: true, version: "0.1.0" });
     expect((await fetch(`${url}/api/assets`)).status).toBe(401);

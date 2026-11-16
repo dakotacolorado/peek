@@ -1,7 +1,23 @@
 # peek
 
-Keeps an agent's images, videos and audio where it made them, and serves them
-back by a link that plays in the browser.
+**See what your agents made, wherever you are.**
+
+```
+██████╗ ███████╗███████╗██╗  ██╗       ▄▄▄▄▄▄
+██╔══██╗██╔════╝██╔════╝██║ ██╔╝    ▄█▀▀▀  ▀▀▀█▄
+██████╔╝█████╗  █████╗  █████╔╝   ▄█▀   ████   ▀█▄
+██╔═══╝ ██╔══╝  ██╔══╝  ██╔═██╗   ▀█▄   ████   ▄█▀
+██║     ███████╗███████╗██║  ██╗    ▀█▄▄▄  ▄▄▄█▀
+╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝       ▀▀▀▀▀▀
+v0.1.0
+
+See what your agents made, wherever you are.
+Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.
+
+  ▸ Page      https://peek.example.com/
+  ▸ API       https://peek.example.com/api/assets   docs https://peek.example.com/docs/api
+  ▸ MCP       https://peek.example.com/mcp          docs https://peek.example.com/docs/mcp
+```
 
 An agent uploads a screenshot, a screen recording or a sound, saying what it
 is for: a repository and pull request, a waypoint task, tags. peek answers a
