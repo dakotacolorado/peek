@@ -7,7 +7,8 @@ import * as routes from "./schema.ts";
 
 export const INSTRUCTIONS = `peek: ${TAGLINE} It keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
 
-- upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
+- On a host with /cellar (the shared drive), the fast way to upload is to write the file under /cellar/peek/ and pass its path to upload_asset: peek records it without copying, from any host, and the asset shows as pending until its file has reached peek's host, then plays. Prefer it to content or an upload URL wherever you can write there.
+- upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Otherwise give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
 - Give the person link, never fileUrl: link is the page that plays it.
 - list_assets finds what was uploaded, newest first, by repo, pr, task, tags, contentType prefix (video/), createdBy or text in q; pass nextToken for the next page.
 - update_asset changes what an asset is of; delete_asset removes it and its file.
@@ -52,6 +53,8 @@ const IdShape = { id: routes.AssetSchema.shape.id };
 
 const UploadShape = {
   ...routes.UploadSchema.shape,
+  name: routes.Name.optional().describe("The file's name, with its extension: no path. Required unless `path` is given, whose last part it defaults to."),
+  path: routes.PathUploadSchema.shape.path.optional().describe("The file's absolute path under /cellar/peek, written there on any host with /cellar: peek serves it in place, never copying it, and it is pending until it reaches peek's host. The fastest way to upload where you can write there; leave out `content`."),
   content: z
     .base64()
     .max(INLINE_MAX)
@@ -94,9 +97,14 @@ export function mcpServer(version: string, call: Call): McpServer {
   tool(
     "upload_asset",
     "Upload an asset",
-    "Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.",
+    "Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `path` (a file you wrote under `/cellar/peek/`) it is recorded in place, never copied: the fastest way where you have `/cellar`. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.",
     UploadShape,
-    async ({ content, contentType, ...upload }) => {
+    async ({ content, contentType, path, ...upload }) => {
+      if (path !== undefined) {
+        if (content !== undefined) return failure("path: give a path or content, not both.");
+        return answer(await call("POST", "/api/assets", { body: { ...upload, path, contentType } }));
+      }
+      if (upload.name === undefined) return failure("name: required, unless a path is given.");
       if (content === undefined) return answer(await call("POST", "/api/uploads", { body: { ...upload, contentType } }));
       const bytes = Buffer.from(content, "base64");
       if (!bytes.length) return failure("content: empty; give the file's bytes in base64, or leave content out for an uploadUrl.");

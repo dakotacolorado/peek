@@ -3,7 +3,7 @@
   "info": {
     "version": "2026-11-15",
     "title": "peek",
-    "description": "Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too. Each host runs its own peek: the files stay on the disk where they were made, with a catalog of them to search.\n\n- **Upload** with `PutAsset`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (`CreateUploadUrl`), and runs the `curl` it answers: the file never passes through the model, and the command needs no token.\n- **Find** with `ListAssets`, by repository, pull request, task, tags, media type, uploader or text, newest first.\n- **Serve:** an asset's `fileUrl` (`GetFile`) answers byte ranges, so a browser seeks a video; its `link` is the page that shows it.\n- **Change** what an asset is of with `UpdateAsset`, and remove it, file and all, with `DeleteAsset`.\n\n**Auth:** `Authorization: Bearer <token>` on everything but `GetHealth`, `PutUpload` (whose URL is its own single-use ticket), the docs and the page. Each token has a name, made with `peek token create <name>`; `PEEK_ADMIN_TOKEN` is one more, named `admin`. Every token may do everything. A browser signs in once with `CreateSession`, which sets a cookie that every call then takes, so `<img>`, `<video>` and `<audio>` load; a write signed in by the cookie alone must also send `x-peek: 1`, or is refused 403.\n\n**Uploader:** an asset's `createdBy` is the uploader's `x-actor` header, when it gives one, else its token's name.\n\n**Errors:** `{code, message}`, where `code` is an AWS-style exception name such as `ValidationException` or `ResourceNotFoundException`."
+    "description": "Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too. Where agents share a drive, they write a file under peek's cellar root and add it by its path.\n\n- **Upload** with `PutAsset`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (`CreateUploadUrl`), and runs the `curl` it answers: the file never passes through the model, and the command needs no token.\n- **Add by path** with `CreateAssetFromPath`: on a host with the shared drive, write the file under `/cellar/peek/` and pass its path; peek records it without copying. Until the file has reached peek's host the asset is `pending`, and `ready` once it plays.\n- **Find** with `ListAssets`, by repository, pull request, task, tags, media type, uploader or text, newest first.\n- **Serve:** an asset's `fileUrl` (`GetFile`) answers byte ranges, so a browser seeks a video; its `link` is the page that shows it.\n- **Change** what an asset is of with `UpdateAsset`, and remove it, file and all, with `DeleteAsset`.\n\n**Auth:** `Authorization: Bearer <token>` on everything but `GetHealth`, `PutUpload` (whose URL is its own single-use ticket), the docs and the page. Each token has a name, made with `peek token create <name>`; `PEEK_ADMIN_TOKEN` is one more, named `admin`. Every token may do everything. A browser signs in once with `CreateSession`, which sets a cookie that every call then takes, so `<img>`, `<video>` and `<audio>` load; a write signed in by the cookie alone must also send `x-peek: 1`, or is refused 403.\n\n**Uploader:** an asset's `createdBy` is the uploader's `x-actor` header, when it gives one, else its token's name.\n\n**Errors:** `{code, message}`, where `code` is an AWS-style exception name such as `ValidationException` or `ResourceNotFoundException`."
   },
   "tags": [
     {
@@ -87,12 +87,27 @@
           },
           "size": {
             "type": "integer",
-            "minimum": 1,
-            "description": "Its size in bytes."
+            "nullable": true,
+            "minimum": 0,
+            "description": "Its size in bytes; null while a path asset is `pending`."
           },
           "sha256": {
             "type": "string",
-            "description": "Its SHA-256, in hex."
+            "nullable": true,
+            "description": "Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole."
+          },
+          "path": {
+            "type": "string",
+            "nullable": true,
+            "description": "The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "ready"
+            ],
+            "description": "`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it."
           },
           "title": {
             "type": "string",
@@ -174,6 +189,8 @@
           "contentType",
           "size",
           "sha256",
+          "path",
+          "state",
           "title",
           "description",
           "repo",
@@ -214,6 +231,81 @@
           "message"
         ],
         "description": "Every error's body."
+      },
+      "CreateAssetFromPathInput": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 4096,
+            "description": "The file's absolute path under peek's cellar root (`PEEK_CELLAR_ROOT`, such as `/cellar/peek`): written there on any host of the drive, it is served in place, never copied.",
+            "example": "/cellar/peek/dakotacolorado/peek/12/login-flow.mp4"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!\\.{1,2}$)[^/\\\\\\u0000-\\u001f\\u007f]+$",
+            "description": "The file's name, with its extension: no path. Default: the path's last part.",
+            "example": "login-flow.mp4"
+          },
+          "contentType": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Its media type, such as `video/mp4`. Default: the name's extension's."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "What it shows, in a few words.",
+            "example": "Login flow on iPhone"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "More on what it shows, or what to look for."
+          },
+          "repo": {
+            "type": "string",
+            "pattern": "^[\\w.-]+\\/[\\w.-]+$",
+            "description": "The GitHub repository it is for, as `owner/name`.",
+            "example": "dakotacolorado/peek"
+          },
+          "pr": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The pull request it is for, in `repo`.",
+            "example": 12
+          },
+          "task": {
+            "type": "string",
+            "pattern": "^[\\w-]{1,64}$",
+            "description": "The waypoint task it is for, by its short id.",
+            "example": "75d018b6"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[^,\\u0000-\\u001f\\u007f]+$",
+              "description": "A tag: any text without a comma."
+            },
+            "maxItems": 20,
+            "description": "Tags, at most 20.",
+            "example": [
+              "before",
+              "mobile"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ]
       },
       "ListAssetsResponse": {
         "type": "object",
@@ -591,6 +683,74 @@
           },
           "401": {
             "description": "UnauthorizedException: No bearer token or session, or it is wrong, revoked or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Assets"
+        ],
+        "operationId": "CreateAssetFromPath",
+        "summary": "Create asset",
+        "description": "Adds a file already on the drive peek's cellar root is part of, by its path, without copying it: on a host with `/cellar`, write the file under `/cellar/peek/` at local speed and pass its path, the fastest way to upload. A file written on another host is `pending` until the drive has brought it here, and `ready` once it has; its `link` works from now. A path outside the root, in peek's own files, or already an asset's, is refused. Deleting the asset deletes the file.",
+        "requestBody": {
+          "description": "The file's path, and what it is of.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssetFromPathInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded: `ready`, or `pending` until its file arrives.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Asset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ValidationException: The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedException: No bearer token or session, or it is wrong, revoked or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ConflictException: Another asset already is this path.",
             "content": {
               "application/json": {
                 "schema": {

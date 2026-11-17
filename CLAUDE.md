@@ -35,7 +35,8 @@ status's exception name (`ERROR_CODES`): tests hold all of it.
 - **Bytes stream.** An upload is piped from the request to disk
   (`DiskFiles.write`), never buffered: several-GB videos are the point. Never
   `arrayBuffer()`, `text()` or `json()` an upload body.
-- **A row always has its file.** Bytes are written whole (under
+- **A path asset is the drive's file.** One added by `path` is never copied: the row names a file under the cellar root, resolved (links and all) to stay inside it, and it is `pending` until the file is there. `sha256` is null for it.
+- **A row has its file, or is pending.** Bytes are written whole (under
   `<files>/.uploads/`, then renamed) before the row; the row is deleted
   before the bytes.
 - **Secrets are hashes.** Tokens, sessions and upload tickets are stored as
@@ -53,6 +54,7 @@ status's exception name (`ERROR_CODES`): tests hold all of it.
 
 - `src/domain.ts`: types and pure rules: names, media types (`contentTypeOf`), byte ranges (`rangeOf`), limits.
 - `src/service.ts`: `Peek`: put (file, then row), update, delete (row, then file), upload tickets.
+- `src/importer.ts`: `peek import`, merging another instance's catalog and files by id.
 - `src/files.ts`: `Files`, the bytes by id and name, and `DiskFiles`. Another backend is another class.
 - `src/store.ts`: SQLite. A new shape is a new entry appended to `MIGRATIONS`, never an edit to one.
 - `src/banner.ts`: the tagline, summary, block letters and eye mark: the terminal banner, the page's header, landing and favicon all take them from here.

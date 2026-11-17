@@ -30,11 +30,11 @@ export interface Init {
 }
 
 /** The API on a catalog in memory and files in a temporary folder, with the token `agent` and the admin's. */
-export function setup(options: { publicUrl?: string | null; taskUrl?: string | null; now?: () => Date } = {}) {
+export function setup(options: { publicUrl?: string | null; taskUrl?: string | null; now?: () => Date; cellarRoot?: string | null } = {}) {
   const store = Store.open(":memory:");
   store.putToken("agent", AGENT, new Date());
   const files = temp();
-  const peek = new Peek(store, new DiskFiles(files), options.now);
+  const peek = new Peek(store, new DiskFiles(files), options.now, options.cellarRoot ?? null);
   const api = new PeekApi(peek, { version: "0.1.0", commit: "abc123" }, { adminToken: ADMIN, publicUrl: options.publicUrl ?? null, taskUrl: options.taskUrl ?? null });
   cleanups.push(() => store.close());
   const fetch = (path: string, init: Init = {}) =>

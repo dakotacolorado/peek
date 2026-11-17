@@ -54,7 +54,7 @@ export async function mcpDocument(): Promise<McpDocument> {
 
 const CONFIG = { mcpServers: { peek: { type: "http", url: `${DOCS_URL}/mcp`, headers: { Authorization: "Bearer <your token>" } } } };
 const ABOUT =
-  "peek keeps the images, videos and audio an agent makes on its host, and serves each back by a link that plays in the person's browser. Its MCP server is for agents: upload a file, small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. " +
+  "peek keeps the images, videos and audio an agent makes on its host, and serves each back by a link that plays in the person's browser. Its MCP server is for agents: upload a file, by its `/cellar/peek/` path where the agent has the shared drive, else small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. " +
   "It is served at `/mcp` (streamable HTTP, stateless, answering JSON), under a token from `peek token create <name>`; each tool is one API request made with it, so it is refused and answered as that request would be. " +
   "A refusal comes back as the tool's error, in the API's words.";
 

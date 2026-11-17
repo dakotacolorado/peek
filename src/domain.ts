@@ -6,8 +6,12 @@ export interface Asset {
   id: string;
   name: string;
   contentType: string;
-  size: number;
-  sha256: string;
+  /** Its size in bytes; null while a path asset is pending. */
+  size: number | null;
+  /** Its SHA-256; null for a path asset, whose bytes peek never reads whole. */
+  sha256: string | null;
+  /** The file under the cellar root it was added by, or null when peek holds its bytes. */
+  path: string | null;
   title: string | null;
   description: string | null;
   repo: string | null;
@@ -16,6 +20,14 @@ export interface Asset {
   tags: string[];
   createdBy: string;
   createdAt: string;
+}
+
+/** `pending` while a path asset's file has not reached this host; `ready` once it plays. */
+export type AssetState = "pending" | "ready";
+
+/** An asset as it is now: its row and whether its file is here. */
+export interface Shown extends Asset {
+  state: AssetState;
 }
 
 /** What a caller says of an asset besides its bytes. */
