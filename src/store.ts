@@ -39,6 +39,32 @@ CREATE TABLE tickets (
   used_at TEXT
 );
 `,
+  // A path asset's size is unknown until its file arrives, and its hash never read: both become nullable.
+  `
+CREATE TABLE assets_v2 (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER,
+  sha256 TEXT,
+  path TEXT UNIQUE,
+  title TEXT,
+  description TEXT,
+  repo TEXT,
+  pr INTEGER,
+  task TEXT,
+  tags TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+INSERT INTO assets_v2 (id, name, content_type, size, sha256, title, description, repo, pr, task, tags, created_by, created_at)
+  SELECT id, name, content_type, size, sha256, title, description, repo, pr, task, tags, created_by, created_at FROM assets;
+DROP TABLE assets;
+ALTER TABLE assets_v2 RENAME TO assets;
+CREATE INDEX assets_newest ON assets (created_at DESC, id DESC);
+CREATE INDEX assets_by_repo ON assets (repo, pr, created_at DESC);
+CREATE INDEX assets_by_task ON assets (task, created_at DESC);
+`,
 ];
 
 export function migrate(db: DatabaseSync): void {
@@ -74,12 +100,13 @@ export const secretHash = (secret: string): string => createHash("sha256").updat
 
 type Row = Record<string, unknown>;
 
-const assetOf = (row: Row): Asset => ({
+export const assetOf = (row: Record<string, unknown>): Asset => ({
   id: row.id as string,
   name: row.name as string,
   contentType: row.content_type as string,
-  size: row.size as number,
-  sha256: row.sha256 as string,
+  size: (row.size as number | null) ?? null,
+  sha256: (row.sha256 as string | null) ?? null,
+  path: (row.path as string | null) ?? null,
   title: (row.title as string | null) ?? null,
   description: (row.description as string | null) ?? null,
   repo: (row.repo as string | null) ?? null,
@@ -132,7 +159,7 @@ export class Store {
   putAsset(asset: Asset): void {
     this.db
       .prepare(
-        "INSERT INTO assets (id, name, content_type, size, sha256, title, description, repo, pr, task, tags, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO assets (id, name, content_type, size, sha256, path, title, description, repo, pr, task, tags, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         asset.id,
@@ -140,6 +167,7 @@ export class Store {
         asset.contentType,
         asset.size,
         asset.sha256,
+        asset.path,
         asset.title,
         asset.description,
         asset.repo,
@@ -162,6 +190,17 @@ export class Store {
     const set = Object.entries(columns).filter(([, value]) => value !== undefined);
     if (set.length) this.db.prepare(`UPDATE assets SET ${set.map(([column]) => `${column} = ?`).join(", ")} WHERE id = ?`).run(...set.map(([, value]) => value ?? null), id);
     return this.asset(id);
+  }
+
+  /** The asset added by this path, if any. */
+  assetByPath(path: string): Asset | null {
+    const row = this.db.prepare("SELECT * FROM assets WHERE path = ?").get(path) as Row | undefined;
+    return row ? assetOf(row) : null;
+  }
+
+  /** Records the size a path asset's file was found to have. */
+  setSize(id: string, size: number): void {
+    this.db.prepare("UPDATE assets SET size = ? WHERE id = ?").run(size, id);
   }
 
   deleteAsset(id: string): boolean {

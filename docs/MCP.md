@@ -2,7 +2,7 @@
 
 <!-- Generated from src/mcp.ts by `npm run spec`; do not edit. -->
 
-peek keeps the images, videos and audio an agent makes on its host, and serves each back by a link that plays in the person's browser. Its MCP server is for agents: upload a file, small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. It is served at `/mcp` (streamable HTTP, stateless, answering JSON), under a token from `peek token create <name>`; each tool is one API request made with it, so it is refused and answered as that request would be. A refusal comes back as the tool's error, in the API's words.
+peek keeps the images, videos and audio an agent makes on its host, and serves each back by a link that plays in the person's browser. Its MCP server is for agents: upload a file, by its `/cellar/peek/` path where the agent has the shared drive, else small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. It is served at `/mcp` (streamable HTTP, stateless, answering JSON), under a token from `peek token create <name>`; each tool is one API request made with it, so it is refused and answered as that request would be. A refusal comes back as the tool's error, in the API's words.
 
 ```json
 {
@@ -24,7 +24,8 @@ What the server tells an agent when it connects:
 
 > peek: See what your agents made, wherever you are. It keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
 >
-> - upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
+> - On a host with /cellar (the shared drive), the fast way to upload is to write the file under /cellar/peek/ and pass its path to upload_asset: peek records it without copying, from any host, and the asset shows as pending until its file has reached peek's host, then plays. Prefer it to content or an upload URL wherever you can write there.
+> - upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Otherwise give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
 > - Give the person link, never fileUrl: link is the page that plays it.
 > - list_assets finds what was uploaded, newest first, by repo, pr, task, tags, contentType prefix (video/), createdBy or text in q; pass nextToken for the next page.
 > - update_asset changes what an asset is of; delete_asset removes it and its file.
@@ -42,11 +43,11 @@ What the server tells an agent when it connects:
 
 ### upload_asset
 
-Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.
+Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `path` (a file you wrote under `/cellar/peek/`) it is recorded in place, never copied: the fastest way where you have `/cellar`. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.
 
 | Input | Type | Required | |
 | --- | --- | --- | --- |
-| `name` | string | yes | The file's name, with its extension: no path. |
+| `name` | string |  | The file's name, with its extension: no path. Required unless `path` is given, whose last part it defaults to. |
 | `contentType` | string |  | Its media type, such as `video/mp4`. Default: the name's extension's. |
 | `title` | string |  | What it shows, in a few words. |
 | `description` | string |  | More on what it shows, or what to look for. |
@@ -54,6 +55,7 @@ Keeps a file and answers its `link`, the page that shows or plays it, to give th
 | `pr` | integer |  | The pull request it is for, in `repo`. |
 | `task` | string |  | The waypoint task it is for, by its short id. |
 | `tags` | string[] |  | Tags, at most 20. |
+| `path` | string |  | The file's absolute path under /cellar/peek, written there on any host with /cellar: peek serves it in place, never copying it, and it is pending until it reaches peek's host. The fastest way to upload where you can write there; leave out `content`. |
 | `content` | string |  | The file, in base64, for a small one (at most 16,000,000 characters, about 12 MB). Leave it out to be given an uploadUrl and a curl command that uploads the file from your shell instead. |
 
 ### list_assets

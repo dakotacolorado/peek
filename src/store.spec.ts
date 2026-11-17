@@ -11,6 +11,7 @@ const asset = (fields: Partial<Asset> = {}): Asset => ({
   contentType: "image/png",
   size: 1,
   sha256: "x",
+  path: null,
   title: null,
   description: null,
   repo: null,
