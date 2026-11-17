@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { serve } from "@hono/node-server";
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { banner, SUMMARY, TAGLINE } from "./banner.ts";
 import { PACKAGE_VERSION } from "./build.ts";
 import { TOKEN_NAME } from "./domain.ts";
+import { adoptPaths } from "./adopt.ts";
 import { DiskFiles } from "./files.ts";
 import { importPeek } from "./importer.ts";
 import { start } from "./server.ts";
@@ -24,7 +25,13 @@ Usage:
   peek import --db <db> --files <dir>
                                    merge another peek's catalog <db> and its files <dir> into this
                                    one (PEEK_DB, PEEK_FILES), keeping asset ids; assets already
-                                   here are skipped, so running it again changes nothing
+                                   here are skipped, so running it again changes nothing;
+                                   --ids <file> takes only the assets whose ids it lists, one per line
+
+  peek adopt                       copy the file of every asset still served from a path into
+                                   PEEK_FILES, set its size and sha256 and clear its path, keeping
+                                   its id and link; one whose file is missing is listed and left;
+                                   running it again changes nothing
 
   peek token create <name>         make a token named <name>, printed once
   peek token list                  list tokens (never their secrets)
@@ -35,8 +42,6 @@ Options:
   --port <n>          port (default 4810, or PEEK_PORT)
   --db <path>         the SQLite catalog (default ~/.local/share/peek/peek.db, or PEEK_DB)
   --files <dir>       the folder the files live in (default ~/.local/share/peek/files, or PEEK_FILES)
-  --cellar-root <dir> the folder an upload by path must be under, on a drive every host shares
-                      (default /cellar/peek, or PEEK_CELLAR_ROOT)
   --public-url <url>  the base every link is built on (default the address each request came to,
                       or PEEK_PUBLIC_URL)
   --task-url <url>    a task's page, {task} standing for its id, so the viewer links an asset's
@@ -57,7 +62,7 @@ const { values, positionals } = parseArgs({
     port: { type: "string" },
     db: { type: "string" },
     files: { type: "string" },
-    "cellar-root": { type: "string" },
+    ids: { type: "string" },
     "public-url": { type: "string" },
     "task-url": { type: "string" },
     dev: { type: "boolean" },
@@ -111,14 +116,27 @@ if (importing) {
   const from = values.db;
   const fromFiles = values.files;
   if (!from || !fromFiles) fail("import needs --db, the other peek's catalog, and --files, its files' folder");
+  const ids = values.ids === undefined ? null : readFileSync(resolve(values.ids), "utf8").split("\n").map((line) => line.trim()).filter(Boolean);
   const into = resolve(env.PEEK_FILES ?? join(data, "files"));
   if (resolve(from!) === path) fail(`--db ${from} is this peek's own catalog (PEEK_DB)`);
   if (resolve(fromFiles!) === into) fail(`--files ${fromFiles} is this peek's own files (PEEK_FILES)`);
   await withStore(async (store) => {
     mkdirSync(into, { recursive: true });
-    const { imported, skipped, problems } = await importPeek(store, new DiskFiles(into), resolve(from!), resolve(fromFiles!));
+    const only = ids === null ? undefined : new Set(ids);
+    const { imported, skipped, problems } = await importPeek(store, new DiskFiles(into), resolve(from!), resolve(fromFiles!), only);
     for (const problem of problems) process.stderr.write(`peek: not imported: ${problem}\n`);
     say(`imported ${imported} assets from ${resolve(from!)} into ${path}, skipped ${skipped} already here${problems.length ? `, ${problems.length} not imported` : ""}`);
+    if (problems.length) process.exitCode = 1;
+  });
+}
+
+if (command === "adopt") {
+  const into = resolve(values.files ?? env.PEEK_FILES ?? join(data, "files"));
+  await withStore(async (store) => {
+    mkdirSync(into, { recursive: true });
+    const { adopted, problems } = await adoptPaths(store, new DiskFiles(into));
+    for (const problem of problems) process.stderr.write(`peek: not adopted: ${problem}\n`);
+    say(`adopted ${adopted} assets into ${into}${problems.length ? `, ${problems.length} not adopted` : ""}`);
     if (problems.length) process.exitCode = 1;
   });
 }
@@ -152,7 +170,6 @@ const portSetting = values.port ?? env.PEEK_PORT;
 const port = Number(portSetting ?? 4810);
 if (!Number.isInteger(port) || port < 0 || port > 65535) fail(`--port must be a port number, not ${portSetting}`);
 const files = resolve(values.files ?? env.PEEK_FILES ?? join(data, "files"));
-const cellarRoot = resolve(values["cellar-root"] ?? env.PEEK_CELLAR_ROOT ?? "/cellar/peek");
 const publicUrl = (values["public-url"] ?? env.PEEK_PUBLIC_URL ?? "").replace(/\/+$/, "") || null;
 if (publicUrl && !/^https?:\/\/[^/]+(\/.*)?$/.test(publicUrl)) fail(`--public-url must be an http(s) URL, not ${publicUrl}`);
 
@@ -161,7 +178,7 @@ if (taskUrl && !/^https?:\/\/[^/]+\/.*\{task\}/.test(taskUrl)) fail(`--task-url 
 
 const dev = values.dev === true;
 const adminToken = env.PEEK_ADMIN_TOKEN || (dev ? "dev" : null);
-const running = start({ db: path, files, cellarRoot, adminToken, publicUrl, taskUrl });
+const running = start({ db: path, files, adminToken, publicUrl, taskUrl });
 const shown = (at: number) => `http://${host.includes(":") ? `[${host}]` : host}:${at}`;
 // Node ends a request after 5 minutes by default, which a large upload outlasts.
 const server = serve({ fetch: running.api.fetch, hostname: host, port, serverOptions: { requestTimeout: 0 } }, (info) => {

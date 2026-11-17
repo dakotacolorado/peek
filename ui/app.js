@@ -120,9 +120,7 @@ function query(given, token) {
 
 function tile(asset) {
   const kind = kindOf(asset);
-  const preview = asset.state === "pending"
-    ? h("span", { class: "kind pending" }, "Still arriving")
-    : isPicture(asset)
+  const preview = isPicture(asset)
     ? h("img", { src: fileOf(asset), alt: "", loading: "lazy" })
     : h("span", { class: `kind ${kind}` }, kind === "video" ? "▶ video" : kind === "audio" ? "♪ audio" : asset.contentType);
   const about = [asset.repo && (asset.pr ? `${asset.repo}#${asset.pr}` : asset.repo), new Date(asset.createdAt).toLocaleDateString()].filter(Boolean).join(" · ");
@@ -169,7 +167,6 @@ $("more").addEventListener("click", () => {
 // The viewer.
 
 function media(asset) {
-  if (asset.state === "pending") return h("p", { class: "pending", role: "status" }, "Still arriving: this file was written on another host and has not reached this one yet. This page reloads until it is here.");
   const file = fileOf(asset);
   const kind = kindOf(asset);
   if (isPicture(asset)) return h("a", { href: file, target: "_blank", title: "Full size" }, h("img", { src: file, alt: labelOf(asset) }));
@@ -217,18 +214,7 @@ async function viewer(id) {
   $("copy").onclick = () => copy(asset.link);
   $("viewer").hidden = false;
   say("");
-  // Its file has not arrived: look again until it has, so the page plays it without a reload by hand.
-  if (asset.state === "pending") {
-    clearTimeout(arriving);
-    arriving = setTimeout(() => {
-      if (location.pathname === `/a/${id}`) viewer(id).catch((err) => say(err.message));
-    }, PENDING_RELOAD_MS);
-  }
 }
-
-/** How long a pending asset's page waits before it looks again. */
-const PENDING_RELOAD_MS = 5000;
-let arriving = null;
 
 async function copy(text) {
   try {

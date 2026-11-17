@@ -6,7 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { LETTERS_ONLY, MARK_ICON, MARK_PIXELS, SUMMARY, TAGLINE } from "./banner.ts";
-import { creatorOf, INLINE_MAX, newSecret, rangeOf, RequestError, SESSION_SECONDS, type Shown } from "./domain.ts";
+import { creatorOf, INLINE_MAX, newSecret, rangeOf, RequestError, SESSION_SECONDS, type Asset } from "./domain.ts";
 import { DOCS_URL, mcpServer, type Call } from "./mcp.ts";
 import * as routes from "./schema.ts";
 import { ERROR_CODES, type ErrorStatus } from "./schema.ts";
@@ -22,10 +22,9 @@ export const API_VERSION = "2026-11-15";
 export const SESSION_COOKIE = "peek_session";
 
 /** The API's overview, at the top of its reference. Markdown. */
-export const OVERVIEW = `${SUMMARY} **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too. Where agents share a drive, they write a file under peek's cellar root and add it by its path.
+export const OVERVIEW = `${SUMMARY} **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too.
 
 - **Upload** with \`PutAsset\`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (\`CreateUploadUrl\`), and runs the \`curl\` it answers: the file never passes through the model, and the command needs no token.
-- **Add by path** with \`CreateAssetFromPath\`: on a host with the shared drive, write the file under \`/cellar/peek/\` and pass its path; peek records it without copying. Until the file has reached peek's host the asset is \`pending\`, and \`ready\` once it plays.
 - **Find** with \`ListAssets\`, by repository, pull request, task, tags, media type, uploader or text, newest first.
 - **Serve:** an asset's \`fileUrl\` (\`GetFile\`) answers byte ranges, so a browser seeks a video; its \`link\` is the page that shows it.
 - **Change** what an asset is of with \`UpdateAsset\`, and remove it, file and all, with \`DeleteAsset\`.
@@ -146,7 +145,7 @@ export class PeekApi {
     return originOf(c) ?? new URL(c.req.url).origin;
   }
 
-  private shown(c: Context, asset: Shown) {
+  private shown(c: Context, asset: Asset) {
     const base = this.base(c);
     const taskUrl = this.options.taskUrl;
     const taskLink = taskUrl && asset.task ? taskUrl.replaceAll("{task}", encodeURIComponent(asset.task)) : null;
@@ -164,25 +163,27 @@ export class PeekApi {
       const { tags: list, ...query } = c.req.valid("query");
       const upload = { ...query, tags: parsedTags(tags(list)), contentType: c.req.header("content-type") };
       const asset = await this.peek.put(upload, c.req.raw.body, creator(c));
-      return c.json(this.shown(c, await this.peek.shown(asset)), 201);
+      return c.json(this.shown(c, asset), 201);
     });
 
-    app.openapi(routes.createFromPathRoute, async (c) => c.json(this.shown(c, await this.peek.putPath(c.req.valid("json"), creator(c))), 201));
+    // Not an operation: it only tells a caller that still posts a path what to send instead.
+    app.post("/api/assets", (c) => fail(c, 400, routes.NO_PATH));
+
 
     app.openapi(routes.listRoute, async (c) => {
       const { tags: list, ...query } = c.req.valid("query");
       const page = this.peek.store.assets({ ...query, tags: parsedTags(tags(list)) });
-      const assets = await Promise.all(page.assets.map(async (asset) => this.shown(c, await this.peek.shown(asset))));
+      const assets = page.assets.map((asset) => this.shown(c, asset));
       return c.json({ assets, nextToken: page.nextToken }, 200);
     });
 
-    app.openapi(routes.getRoute, async (c) => c.json(this.shown(c, await this.peek.shown(this.peek.find(c.req.valid("param").id))), 200));
+    app.openapi(routes.getRoute, async (c) => c.json(this.shown(c, this.peek.find(c.req.valid("param").id)), 200));
 
-    app.openapi(routes.updateRoute, async (c) => c.json(this.shown(c, await this.peek.shown(this.peek.update(c.req.valid("param").id, c.req.valid("json")))), 200));
+    app.openapi(routes.updateRoute, async (c) => c.json(this.shown(c, this.peek.update(c.req.valid("param").id, c.req.valid("json"))), 200));
 
     app.openapi(routes.deleteRoute, async (c) => {
       const { id } = c.req.valid("param");
-      const shown = await this.peek.shown(this.peek.find(id));
+      const shown = this.peek.find(id);
       await this.peek.delete(id);
       return c.json(this.shown(c, shown), 200);
     });
@@ -196,20 +197,20 @@ export class PeekApi {
 
     app.openapi(routes.putUploadRoute, async (c) => {
       const asset = await this.peek.putByTicket(c.req.valid("param").ticket, c.req.raw.body, c.req.header("content-type") ?? null);
-      return c.json(this.shown(c, await this.peek.shown(asset)), 201);
+      return c.json(this.shown(c, asset), 201);
     });
 
     app.openapi(routes.fileRoute, (async (c: Context<Env>) => {
       const { id, name } = (c.req as unknown as { valid: (t: "param") => { id: string; name: string } }).valid("param");
       const asset = this.peek.store.asset(id);
       const size = asset && asset.name === name ? await this.peek.located(asset) : null;
-      if (!asset || size === null) return fail(c, 404, asset?.path && asset.name === name ? "Its file has not arrived on this host yet: it is pending." : "No asset has that id and name.");
+      if (!asset || size === null) return fail(c, 404, "No asset has that id and name.");
       const range = rangeOf(c.req.header("range"), size);
       const headers: Record<string, string> = {
         ...FILE_HEADERS,
         "content-type": asset.contentType,
         "accept-ranges": "bytes",
-        // A path asset's file is the path's, which its writer may write again, and has no hash.
+        // A path asset not yet adopted has no hash.
         ...(asset.sha256 ? { etag: `"${asset.sha256}"` } : { "cache-control": "private, no-cache" }),
         "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
       };

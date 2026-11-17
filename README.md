@@ -47,7 +47,14 @@ folder `--files` names; copy it as you would any folder.
 `peek import --db <other peek.db> --files <its files folder>` merges another
 peek's catalog and files into this one. Assets keep their ids, so their
 links' ids still work here; those already here are skipped, so running it
-again changes nothing. Tokens are not imported.
+again changes nothing. Tokens are not imported. `--ids <file>` takes only the
+assets whose ids the file lists, one per line.
+
+`peek adopt` is for a catalog that still holds assets served from a file path
+(`path` is not null): it copies each such file into `--files`, sets the asset's
+`size` and `sha256`, and clears its `path`. Ids and links stay. A file that is
+missing is listed and its asset left as it is; running it again does nothing.
+Until then, such an asset plays from its path.
 
 ## Configure it
 
@@ -57,7 +64,6 @@ again changes nothing. Tokens are not imported.
 | `--port` | `PEEK_PORT` | `4810` | Port to listen on. |
 | `--db` | `PEEK_DB` | `~/.local/share/peek/peek.db` | The SQLite catalog. |
 | `--files` | `PEEK_FILES` | `~/.local/share/peek/files` | The folder the files live in. |
-| `--cellar-root` | `PEEK_CELLAR_ROOT` | `/cellar/peek` | The folder an upload by path must be under: on a shared drive, where every host sees the same files. `--files` may be a folder there too. |
 | `--public-url` | `PEEK_PUBLIC_URL` | the address each request came to | The base every `link`, `fileUrl` and `uploadUrl` is built on. |
 | `--task-url` | `PEEK_TASK_URL` | none | A task's page, `{task}` standing for its id (`https://tasks.example.com/items/{task}`). The viewer links an asset's task there; with none, the task is shown unlinked. |
 | | `PEEK_ADMIN_TOKEN` | none | One more token, named `admin`, beside those made with `peek token`. |
@@ -88,17 +94,10 @@ Agents use the MCP server at `/mcp`, with a token in its config:
 { "mcpServers": { "peek": { "type": "http", "url": "https://peek.example.com/mcp", "headers": { "Authorization": "Bearer <token>" } } } }
 ```
 
-Where the agent has the shared drive at `/cellar`, `upload_asset` takes a
-`path`: write the file under `/cellar/peek/` at local speed and pass its path.
-peek records it without copying it. `POST /api/assets` with `{"path": …}` does
-the same. A path outside the cellar root is refused. Otherwise `upload_asset`
-takes a small file inline, in base64; for a larger one it answers an upload
-URL and the `curl -T <file> '<uploadUrl>'` to run: that URL needs no token,
-works once, and stops working after an hour.
-
-An asset added by path whose file has not reached peek's host yet, because it
-was written on another host, has `state: pending`. Its page says it is still
-arriving and reloads until the file is there; the asset is `ready` from then.
+`upload_asset` takes a small file inline, in base64; for a larger one it
+answers an upload URL and the `curl -T <file> '<uploadUrl>'` to run: that URL
+needs no token, works once, and stops working after an hour. A request with a
+`path` is refused.
 
 ## View it
 

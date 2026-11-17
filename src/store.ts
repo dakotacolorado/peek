@@ -198,9 +198,14 @@ export class Store {
     return row ? assetOf(row) : null;
   }
 
-  /** Records the size a path asset's file was found to have. */
-  setSize(id: string, size: number): void {
-    this.db.prepare("UPDATE assets SET size = ? WHERE id = ?").run(size, id);
+  /** Assets still served from a path, oldest first. */
+  pathAssets(): Asset[] {
+    return (this.db.prepare("SELECT * FROM assets WHERE path IS NOT NULL ORDER BY created_at, id").all() as Row[]).map(assetOf);
+  }
+
+  /** Makes a path asset one peek holds itself: sets its size and hash and clears its path, in one statement. False when it no longer has `path`. */
+  adopt(id: string, path: string, size: number, sha256: string): boolean {
+    return this.db.prepare("UPDATE assets SET size = ?, sha256 = ?, path = NULL WHERE id = ? AND path = ?").run(size, sha256, id, path).changes > 0;
   }
 
   deleteAsset(id: string): boolean {

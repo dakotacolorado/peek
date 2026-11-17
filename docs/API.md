@@ -2,10 +2,9 @@
 
 API version 2026-11-15
 
-Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too. Where agents share a drive, they write a file under peek's cellar root and add it by its path.
+Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too.
 
 - **Upload** with `PutAsset`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (`CreateUploadUrl`), and runs the `curl` it answers: the file never passes through the model, and the command needs no token.
-- **Add by path** with `CreateAssetFromPath`: on a host with the shared drive, write the file under `/cellar/peek/` and pass its path; peek records it without copying. Until the file has reached peek's host the asset is `pending`, and `ready` once it plays.
 - **Find** with `ListAssets`, by repository, pull request, task, tags, media type, uploader or text, newest first.
 - **Serve:** an asset's `fileUrl` (`GetFile`) answers byte ranges, so a browser seeks a video; its `link` is the page that shows it.
 - **Change** what an asset is of with `UpdateAsset`, and remove it, file and all, with `DeleteAsset`.
@@ -18,7 +17,6 @@ Keeps an agent's images, videos and audio where it made them, and serves them ba
 
 ## Operations
 
-- [CreateAssetFromPath](#createassetfrompath): Create asset
 - [CreateSession](#createsession): Create a session
 - [CreateUploadUrl](#createuploadurl): Create upload URL
 - [DeleteAsset](#deleteasset): Delete an asset
@@ -37,186 +35,6 @@ Keeps an agent's images, videos and audio where it made them, and serves them ba
 - [Error](#error)
 - [Health](#health)
 - [Session](#session)
-
----
-
-## CreateAssetFromPath
-
-Adds a file already on the drive peek's cellar root is part of, by its path, without copying it: on a host with `/cellar`, write the file under `/cellar/peek/` at local speed and pass its path, the fastest way to upload. A file written on another host is `pending` until the drive has brought it here, and `ready` once it has; its `link` works from now. A path outside the root, in peek's own files, or already an asset's, is refused. Deleting the asset deletes the file.
-
-### Request syntax
-
-```http
-POST /api/assets HTTP/1.1
-Authorization: Bearer token
-Content-type: application/json
-
-{
-   "path": "string",
-   "name": "string",
-   "contentType": "string",
-   "title": "string",
-   "description": "string",
-   "repo": "string",
-   "pr": number,
-   "task": "string",
-   "tags": [ "string" ]
-}
-```
-
-### Request body
-
-**path**  
-The file's absolute path under peek's cellar root (`PEEK_CELLAR_ROOT`, such as `/cellar/peek`): written there on any host of the drive, it is served in place, never copied.  
-Type: String. Length: 2 to 4096. Required: Yes.
-
-**name**  
-The file's name, with its extension: no path. Default: the path's last part.  
-Type: String. Length: 1 to 200. Pattern: `^(?!\.{1,2}$)[^/\\\u0000-\u001f\u007f]+$`. Required: No.
-
-**contentType**  
-Its media type, such as `video/mp4`. Default: the name's extension's.  
-Type: String. Length: 0 to 200. Required: No.
-
-**title**  
-What it shows, in a few words.  
-Type: String. Length: 1 to 200. Required: No.
-
-**description**  
-More on what it shows, or what to look for.  
-Type: String. Length: 1 to 4000. Required: No.
-
-**repo**  
-The GitHub repository it is for, as `owner/name`.  
-Type: String. Pattern: `^[\w.-]+\/[\w.-]+$`. Required: No.
-
-**pr**  
-The pull request it is for, in `repo`.  
-Type: Integer. Range: 1 to any. Required: No.
-
-**task**  
-The waypoint task it is for, by its short id.  
-Type: String. Pattern: `^[\w-]{1,64}$`. Required: No.
-
-**tags**  
-Tags, at most 20.  
-Type: Array of strings. At most 20 items. Required: No.
-
-### Response syntax
-
-```http
-HTTP/1.1 201
-Content-type: application/json
-
-{
-   "id": "string",
-   "name": "string",
-   "contentType": "string",
-   "size": number,
-   "sha256": "string",
-   "path": "string",
-   "state": "pending | ready",
-   "title": "string",
-   "description": "string",
-   "repo": "string",
-   "pr": number,
-   "task": "string",
-   "tags": [ "string" ],
-   "createdBy": "string",
-   "createdAt": "string",
-   "link": "string",
-   "taskLink": "string",
-   "fileUrl": "string"
-}
-```
-
-### Response elements
-
-**id**  
-The asset's id: 12 URL-safe characters.  
-Type: String. Pattern: `^[\w-]{12}$`.
-
-**name**  
-The file's name, with its extension: no path.  
-Type: String. Length: 1 to 200. Pattern: `^(?!\.{1,2}$)[^/\\\u0000-\u001f\u007f]+$`.
-
-**contentType**  
-Its media type: the upload's `Content-Type`, or, when that says nothing (`application/octet-stream`), the name's extension's.  
-Type: String. Length: 0 to 200.
-
-**size**  
-Its size in bytes; null while a path asset is `pending`.  
-Type: Integer. Range: 0 to any. Nullable: Yes.
-
-**sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
-Type: String. Nullable: Yes.
-
-**path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
-Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
-
-**title**  
-What it shows, in a few words.  
-Type: String. Length: 1 to 200. Nullable: Yes.
-
-**description**  
-More on what it shows, or what to look for.  
-Type: String. Length: 1 to 4000. Nullable: Yes.
-
-**repo**  
-The GitHub repository it is for, as `owner/name`.  
-Type: String. Pattern: `^[\w.-]+\/[\w.-]+$`. Nullable: Yes.
-
-**pr**  
-The pull request it is for, in `repo`.  
-Type: Integer. Range: 1 to any. Nullable: Yes.
-
-**task**  
-The waypoint task it is for, by its short id.  
-Type: String. Pattern: `^[\w-]{1,64}$`. Nullable: Yes.
-
-**tags**  
-Tags, at most 20.  
-Type: Array of strings. At most 20 items.
-
-**createdBy**  
-Who uploaded it: the uploader's `x-actor` header, else its token's name.  
-Type: String.
-
-**createdAt**  
-Uploaded at (ISO 8601).  
-Type: String.
-
-**link**  
-Its page, which shows or plays it in the browser: the link to give the person.  
-Type: String.
-
-**taskLink**  
-Its task's page, when peek is given a task URL (`PEEK_TASK_URL`) and the asset a `task`; else null.  
-Type: String. Nullable: Yes.
-
-**fileUrl**  
-Its bytes, served with range support. A browser reaches it once signed in (`CreateSession`); anything else with a bearer token.  
-Type: String.
-
-### Errors
-
-**ValidationException**  
-The request failed validation.  
-HTTP status: 400
-
-**UnauthorizedException**  
-No bearer token or session, or it is wrong, revoked or expired.  
-HTTP status: 401
-
-**ConflictException**  
-Another asset already is this path.  
-HTTP status: 409
 
 ---
 
@@ -273,6 +91,7 @@ Authorization: Bearer token
 Content-type: application/json
 
 {
+   "path": "string",
    "name": "string",
    "contentType": "string",
    "title": "string",
@@ -285,6 +104,10 @@ Content-type: application/json
 ```
 
 ### Request body
+
+**path**  
+Refused: peek takes no path. Send the file's bytes, or ask for an upload URL.  
+Type: String. Required: No.
 
 **name**  
 The file's name, with its extension: no path.  
@@ -397,7 +220,6 @@ Content-type: application/json
    "size": number,
    "sha256": "string",
    "path": "string",
-   "state": "pending | ready",
    "title": "string",
    "description": "string",
    "repo": "string",
@@ -427,20 +249,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
 
 **title**  
 What it shows, in a few words.  
@@ -572,7 +390,6 @@ Content-type: application/json
    "size": number,
    "sha256": "string",
    "path": "string",
-   "state": "pending | ready",
    "title": "string",
    "description": "string",
    "repo": "string",
@@ -602,20 +419,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
 
 **title**  
 What it shows, in a few words.  
@@ -836,7 +649,6 @@ Content-type: application/json
       "size": number,
       "sha256": "string",
       "path": "string",
-      "state": "pending | ready",
       "title": "string",
       "description": "string",
       "repo": "string",
@@ -882,7 +694,7 @@ Uploads a file: its bytes are the body, streamed to disk, so a file of any size 
 ### Request syntax
 
 ```http
-PUT /api/assets?name=name&title=title&description=description&repo=repo&pr=pr&task=task&tags=tags HTTP/1.1
+PUT /api/assets?path=path&name=name&title=title&description=description&repo=repo&pr=pr&task=task&tags=tags HTTP/1.1
 Authorization: Bearer token
 Content-type: application/octet-stream
 
@@ -890,6 +702,10 @@ The file's bytes
 ```
 
 ### Query parameters
+
+**path**  
+Refused: peek takes no path. Send the file's bytes, or ask for an upload URL.  
+Type: String. Required: No.
 
 **name**  
 The file's name, with its extension: no path.  
@@ -936,7 +752,6 @@ Content-type: application/json
    "size": number,
    "sha256": "string",
    "path": "string",
-   "state": "pending | ready",
    "title": "string",
    "description": "string",
    "repo": "string",
@@ -966,20 +781,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
 
 **title**  
 What it shows, in a few words.  
@@ -1073,7 +884,6 @@ Content-type: application/json
    "size": number,
    "sha256": "string",
    "path": "string",
-   "state": "pending | ready",
    "title": "string",
    "description": "string",
    "repo": "string",
@@ -1103,20 +913,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
 
 **title**  
 What it shows, in a few words.  
@@ -1240,7 +1046,6 @@ Content-type: application/json
    "size": number,
    "sha256": "string",
    "path": "string",
-   "state": "pending | ready",
    "title": "string",
    "description": "string",
    "repo": "string",
@@ -1270,20 +1075,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`.
 
 **title**  
 What it shows, in a few words.  
@@ -1366,20 +1167,16 @@ Its media type: the upload's `Content-Type`, or, when that says nothing (`applic
 Type: String. Length: 0 to 200. Required: Yes.
 
 **size**  
-Its size in bytes; null while a path asset is `pending`.  
+Its size in bytes; null for a path asset not yet adopted.  
 Type: Integer. Range: 0 to any. Nullable: Yes. Required: Yes.
 
 **sha256**  
-Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole.  
+Its SHA-256, in hex; null for a path asset not yet adopted.  
 Type: String. Nullable: Yes. Required: Yes.
 
 **path**  
-The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes.  
+The file a not yet adopted asset is still served from; null once peek holds its bytes.  
 Type: String. Nullable: Yes. Required: Yes.
-
-**state**  
-`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it.  
-Type: String. Valid values: `pending` | `ready`. Required: Yes.
 
 **title**  
 What it shows, in a few words.  
