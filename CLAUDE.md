@@ -35,8 +35,8 @@ status's exception name (`ERROR_CODES`): tests hold all of it.
 - **Bytes stream.** An upload is piped from the request to disk
   (`DiskFiles.write`), never buffered: several-GB videos are the point. Never
   `arrayBuffer()`, `text()` or `json()` an upload body.
-- **A path asset is the drive's file.** One added by `path` is never copied: the row names a file under the cellar root, resolved (links and all) to stay inside it, and it is `pending` until the file is there. `sha256` is null for it.
-- **A row has its file, or is pending.** Bytes are written whole (under
+- **A path asset is served from its path until adopted.** Only old rows hold a `path` (`peek adopt` copies the file in and clears it); nothing makes new ones.
+- **A row has its file.** Bytes are written whole (under
   `<files>/.uploads/`, then renamed) before the row; the row is deleted
   before the bytes.
 - **Secrets are hashes.** Tokens, sessions and upload tickets are stored as

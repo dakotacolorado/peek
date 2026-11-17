@@ -70,4 +70,3 @@ button[type="submit"] { background: var(--ink); color: var(--bg); border-color: 
   #grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
 
-.pending { padding: 1rem; border: 1px dashed currentColor; border-radius: 0.5rem; opacity: 0.8; }

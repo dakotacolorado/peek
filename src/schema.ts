@@ -16,6 +16,14 @@ const Pr = z.int().min(1).describe("The pull request it is for, in `repo`.").ope
 const Task = z.string().regex(TASK_PATTERN).describe("The waypoint task it is for, by its short id.").openapi({ example: "75d018b6" });
 const Tag = z.string().trim().min(1).max(TAG_MAX).regex(TAG_PATTERN).describe("A tag: any text without a comma.");
 const Tags = z.array(Tag).max(TAGS_MAX).describe(`Tags, at most ${TAGS_MAX}.`).openapi({ example: ["before", "mobile"] });
+/** What a request with a `path` is told: peek takes a file's bytes only. */
+export const NO_PATH = "path: peek takes no path. Send the file's bytes as `content`, or leave `content` out to be given an upload URL.";
+/** A `path` in a request is refused; absent, it is nothing. */
+const NoPath = z
+  .string()
+  .refine(() => false, { error: NO_PATH })
+  .optional()
+  .describe("Refused: peek takes no path. Send the file's bytes, or ask for an upload URL.");
 const ContentType = z.string().max(200).describe("Its media type, such as `video/mp4`.");
 
 export const AssetSchema = z
@@ -23,12 +31,9 @@ export const AssetSchema = z
     id: Id,
     name: Name,
     contentType: ContentType.describe("Its media type: the upload's `Content-Type`, or, when that says nothing (`application/octet-stream`), the name's extension's."),
-    size: z.int().min(0).nullable().describe("Its size in bytes; null while a path asset is `pending`."),
-    sha256: z.string().nullable().describe("Its SHA-256, in hex; null for an asset added by `path`, whose bytes peek does not read whole."),
-    path: z.string().nullable().describe("The file it was added by (`CreateAssetFromPath`), which peek serves in place; null when peek holds its bytes."),
-    state: z
-      .enum(["pending", "ready"])
-      .describe("`ready` once its file is here to serve. An asset added by `path` is `pending` until its file reaches this host, as a drive uploading it from another host does; its link waits for it."),
+    size: z.int().min(0).nullable().describe("Its size in bytes; null for a path asset not yet adopted."),
+    sha256: z.string().nullable().describe("Its SHA-256, in hex; null for a path asset not yet adopted."),
+    path: z.string().nullable().describe("The file a not yet adopted asset is still served from; null once peek holds its bytes."),
     title: Title.nullable(),
     description: Description.nullable(),
     repo: Repo.nullable(),
@@ -92,6 +97,7 @@ const TagList = z
 
 /** What an upload says of its file, in `PutAsset`'s query. */
 export const PutQuery = z.object({
+  path: NoPath,
   name: Name,
   title: Title.optional(),
   description: Description.optional(),
@@ -104,6 +110,7 @@ export const PutQuery = z.object({
 /** What an upload URL is made for, which `upload_asset` takes too. */
 export const UploadSchema = z
   .object({
+    path: NoPath,
     name: Name,
     contentType: ContentType.optional().describe("Its media type, such as `video/mp4`. Default: the name's extension's."),
     title: Title.optional(),
@@ -114,26 +121,6 @@ export const UploadSchema = z
     tags: Tags.optional(),
   })
   .openapi("CreateUploadUrlInput");
-
-/** An asset added by a file already under the cellar root, which `upload_asset` takes too. */
-export const PathUploadSchema = z
-  .object({
-    path: z
-      .string()
-      .min(2)
-      .max(4096)
-      .describe("The file's absolute path under peek's cellar root (`PEEK_CELLAR_ROOT`, such as `/cellar/peek`): written there on any host of the drive, it is served in place, never copied.")
-      .openapi({ example: "/cellar/peek/dakotacolorado/peek/12/login-flow.mp4" }),
-    name: Name.optional().describe("The file's name, with its extension: no path. Default: the path's last part."),
-    contentType: ContentType.optional().describe("Its media type, such as `video/mp4`. Default: the name's extension's."),
-    title: Title.optional(),
-    description: Description.optional(),
-    repo: Repo.optional(),
-    pr: Pr.optional(),
-    task: Task.optional(),
-    tags: Tags.optional(),
-  })
-  .openapi("CreateAssetFromPathInput");
 
 export const UpdateSchema = z
   .object({
@@ -202,22 +189,6 @@ export const putRoute = createRoute({
     body: { content: { "application/octet-stream": { schema: Bytes } }, description: "The file's bytes", required: true },
   },
   responses: { 201: json(AssetSchema, "Kept."), ...FAILS },
-});
-
-export const createFromPathRoute = createRoute({
-  ...signedIn,
-  method: "post",
-  path: "/api/assets",
-  operationId: "CreateAssetFromPath",
-  summary: "Create asset",
-  description:
-    "Adds a file already on the drive peek's cellar root is part of, by its path, without copying it: on a host with `/cellar`, write the file under `/cellar/peek/` at local speed and pass its path, the fastest way to upload. A file written on another host is `pending` until the drive has brought it here, and `ready` once it has; its `link` works from now. A path outside the root, in peek's own files, or already an asset's, is refused. Deleting the asset deletes the file.",
-  request: { body: json(PathUploadSchema, "The file's path, and what it is of.") },
-  responses: {
-    201: json(AssetSchema, "Recorded: `ready`, or `pending` until its file arrives."),
-    ...FAILS,
-    409: fails(409, "Another asset already is this path."),
-  },
 });
 
 export const listRoute = createRoute({

@@ -19,9 +19,10 @@ export interface Imported {
  * read-only, never changed) and the files under `files`. Each keeps its id,
  * so its old link's id resolves here; one already here is skipped, so a
  * second run changes nothing. A path asset comes over as its row alone.
- * Tokens, sessions and tickets stay behind.
+ * Tokens, sessions and tickets stay behind. With `only`, just the assets
+ * with those ids come over; one it lists that the catalog lacks is a problem.
  */
-export async function importPeek(store: Store, into: Files, db: string, files: string): Promise<Imported> {
+export async function importPeek(store: Store, into: Files, db: string, files: string, only?: ReadonlySet<string>): Promise<Imported> {
   const source = new DatabaseSync(db, { readOnly: true });
   const rows = (() => {
     try {
@@ -31,7 +32,8 @@ export async function importPeek(store: Store, into: Files, db: string, files: s
     }
   })();
   const result: Imported = { imported: 0, skipped: 0, problems: [] };
-  for (const asset of rows) {
+  if (only) for (const id of only) if (!rows.some((row) => row.id === id)) result.problems.push(`${id}: not in ${db}`);
+  for (const asset of only ? rows.filter((row) => only.has(row.id)) : rows) {
     if (store.asset(asset.id)) {
       result.skipped++;
       continue;
