@@ -82,6 +82,7 @@ async function get(path) {
 const kindOf = (asset) => asset.contentType.split("/")[0];
 const labelOf = (asset) => asset.title ?? asset.name;
 const fileOf = (asset) => new URL(asset.fileUrl).pathname;
+const downloadOf = (asset) => `${fileOf(asset)}?download=1`;
 const isPicture = (asset) => kindOf(asset) === "image" && asset.contentType !== "image/svg+xml";
 
 function sizeOf(bytes) {
@@ -172,7 +173,7 @@ function media(asset) {
   if (isPicture(asset)) return h("a", { href: file, target: "_blank", title: "Full size" }, h("img", { src: file, alt: labelOf(asset) }));
   if (kind === "video") return h("video", { src: file, controls: true, playsinline: true, preload: "metadata" });
   if (kind === "audio") return h("audio", { src: file, controls: true, preload: "metadata" });
-  return h("a", { href: file, download: asset.name, class: "button" }, `Download ${asset.name}`);
+  return h("a", { href: downloadOf(asset), download: asset.name, class: "button" }, `Download ${asset.name}`);
 }
 
 function detail(term, value) {
@@ -192,6 +193,8 @@ async function viewer(id) {
   $("description").textContent = asset.description ?? "";
   $("description").hidden = !asset.description;
   $("open").href = fileOf(asset);
+  $("download").href = downloadOf(asset);
+  $("download").download = asset.name;
   if (asset.repo) {
     $("siblings").href = galleryOf(asset.repo, asset.pr);
     $("siblings").textContent = asset.pr ? `All of #${asset.pr}` : `All of ${asset.repo}`;

@@ -202,6 +202,7 @@ export class PeekApi {
 
     app.openapi(routes.fileRoute, (async (c: Context<Env>) => {
       const { id, name } = (c.req as unknown as { valid: (t: "param") => { id: string; name: string } }).valid("param");
+      const download = Boolean(c.req.query("download"));
       const asset = this.peek.store.asset(id);
       const size = asset && asset.name === name ? await this.peek.located(asset) : null;
       if (!asset || size === null) return fail(c, 404, "No asset has that id and name.");
@@ -212,7 +213,7 @@ export class PeekApi {
         "accept-ranges": "bytes",
         // A path asset not yet adopted has no hash.
         ...(asset.sha256 ? { etag: `"${asset.sha256}"` } : { "cache-control": "private, no-cache" }),
-        "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
+        "content-disposition": `${download ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
       };
       if (range === "unsatisfiable") return c.json({ code: ERROR_CODES[416], message: `The range starts past the end of the file, ${size} bytes.` }, 416, { "content-range": `bytes */${size}` });
       const status = range ? 206 : 200;
