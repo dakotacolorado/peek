@@ -305,6 +305,9 @@ export const fileRoute = createRoute({
       id: Id.openapi({ param: { name: "id", in: "path" } }),
       name: Name.openapi({ param: { name: "name", in: "path" } }).describe("The asset's name, URL-encoded."),
     }),
+    query: z.object({
+      download: z.string().optional().describe("Any non-empty value, such as `1`, answers with `Content-Disposition: attachment` so a browser saves the file under its name instead of showing it."),
+    }),
     headers: z.object({ range: z.string().optional().describe("One span of bytes, such as `bytes=0-1023`.") }),
   },
   responses: {

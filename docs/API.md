@@ -497,7 +497,7 @@ An asset's bytes, as its `fileUrl` gives them, with its media type, `Accept-Rang
 ### Request syntax
 
 ```http
-GET /f/{id}/{name} HTTP/1.1
+GET /f/{id}/{name}?download=download HTTP/1.1
 Authorization: Bearer token
 range: string
 ```
@@ -511,6 +511,12 @@ Type: String. Pattern: `^[\w-]{12}$`. Required: Yes.
 **name**  
 The asset's name, URL-encoded.  
 Type: String. Length: 1 to 200. Pattern: `^(?!\.{1,2}$)[^/\\\u0000-\u001f\u007f]+$`. Required: Yes.
+
+### Query parameters
+
+**download**  
+Any non-empty value, such as `1`, answers with `Content-Disposition: attachment` so a browser saves the file under its name instead of showing it.  
+Type: String. Required: No.
 
 ### Request headers
 

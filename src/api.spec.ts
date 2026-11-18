@@ -264,6 +264,37 @@ describe("GetFile", () => {
     expect(await res.text()).toBe("");
   });
 
+  it("answers as an attachment with ?download=1 and changes nothing else", async () => {
+    const { t, asset, body } = await served();
+    const path = new URL(asset.fileUrl).pathname;
+    const at = (query: string, headers: Record<string, string> = {}, method = "GET") => t.fetch(path + query, { method, headers: { ...t.bearer(), ...headers } });
+    const plain = await at("");
+    const saved = await at("?download=1");
+    expect(plain.headers.get("content-disposition")).toBe("inline; filename*=UTF-8''clip.mp4");
+    expect(saved.headers.get("content-disposition")).toBe("attachment; filename*=UTF-8''clip.mp4");
+    expect(saved.status).toBe(200);
+    expect(new Uint8Array(await saved.arrayBuffer())).toEqual(body);
+    const same = (a: Response, b: Response) => {
+      const rest = (r: Response) => [...r.headers].filter(([k]) => k !== "content-disposition");
+      expect(rest(a)).toEqual(rest(b));
+      expect(a.status).toBe(b.status);
+    };
+    same(plain, saved);
+    expect(saved.headers.get("etag")).toBe(`"${asset.sha256}"`);
+    expect(saved.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(saved.headers.get("content-security-policy")).toMatch(/^sandbox/);
+    const ranged = await at("?download=1", { range: "bytes=100-199" });
+    expect(ranged.status).toBe(206);
+    expect(ranged.headers.get("content-range")).toBe("bytes 100-199/1000");
+    expect(ranged.headers.get("content-disposition")).toMatch(/^attachment/);
+    same(await at("", { range: "bytes=100-199" }), ranged);
+    const head = await at("?download=1", {}, "HEAD");
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+    same(await at("", {}, "HEAD"), head);
+    expect(head.headers.get("content-disposition")).toMatch(/^attachment/);
+  });
+
   it("answers 404 for the right id under another name", async () => {
     const { t, asset } = await served();
     expect((await t.fetch(`/f/${asset.id}/other.mp4`, { headers: t.bearer() })).status).toBe(404);

@@ -95,6 +95,15 @@ describe("the page", () => {
     expect(app).toContain('fetch("/api/session", { method: "POST"');
   });
 
+  it("offers a Download button for every asset, saving by ?download=1", () => {
+    expect(file("ui/index.html")).toContain('<a id="download" class="button">Download</a>');
+    const app = file("ui/app.js");
+    expect(app).toContain("`${fileOf(asset)}?download=1`");
+    expect(app).toContain('$("download").href = downloadOf(asset);');
+    expect(app).toContain('$("download").download = asset.name;');
+    expect(app).toContain('h("a", { href: downloadOf(asset), download: asset.name, class: "button" }');
+  });
+
   it("plays video inline, and fits a phone with tap targets at least 44 pixels", () => {
     expect(file("ui/app.js")).toContain('h("video", { src: file, controls: true, playsinline: true');
     expect(file("ui/index.html")).toContain('<meta name="viewport" content="width=device-width, initial-scale=1" />');

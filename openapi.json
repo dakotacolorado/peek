@@ -1179,6 +1179,16 @@
           {
             "schema": {
               "type": "string",
+              "description": "Any non-empty value, such as `1`, answers with `Content-Disposition: attachment` so a browser saves the file under its name instead of showing it."
+            },
+            "required": false,
+            "description": "Any non-empty value, such as `1`, answers with `Content-Disposition: attachment` so a browser saves the file under its name instead of showing it.",
+            "name": "download",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "description": "One span of bytes, such as `bytes=0-1023`."
             },
             "required": false,
