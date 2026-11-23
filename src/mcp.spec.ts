@@ -99,6 +99,6 @@ describe("mcp.json, docs/MCP.md and docs/mcp.html", () => {
   });
 
   it("open by saying what peek is for and who uses the server", () => {
-    expect(readFileSync(MCP_DOC, "utf8").split("\n")[4]).toMatch(/^peek keeps the images, videos and audio an agent makes .* for agents/);
+    expect(readFileSync(MCP_DOC, "utf8").split("\n")[4]).toMatch(/^peek keeps the images, videos, audio, text and markdown an agent makes .* for agents/);
   });
 });

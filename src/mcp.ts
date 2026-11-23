@@ -5,7 +5,7 @@ import { TAGLINE } from "./banner.ts";
 import { INLINE_MAX } from "./domain.ts";
 import * as routes from "./schema.ts";
 
-export const INSTRUCTIONS = `peek: ${TAGLINE} It keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
+export const INSTRUCTIONS = `peek: ${TAGLINE} It keeps the images, videos, audio, text and markdown you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording, a sound or a report you want the person to see or hear or read: a \`.md\` report gets a link that shows it formatted, a \`.txt\`, \`.csv\` or \`.json\` file one that shows it as text (up to 1 MB; larger text offers a download), and give them its link (in a PR, a task comment or a message) instead of attaching the file.
 
 - upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
 - Give the person link, never fileUrl: link is the page that plays it.
@@ -95,7 +95,7 @@ export function mcpServer(version: string, call: Call): McpServer {
   tool(
     "upload_asset",
     "Upload an asset",
-    "Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.",
+    "Keeps a file and answers its `link`, the page that shows or plays it, to give the person (a `.md` file shows formatted, other text as text, up to 1 MB). With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.",
     UploadShape,
     async ({ content, contentType, ...upload }) => {
       if (content === undefined) return answer(await call("POST", "/api/uploads", { body: { ...upload, contentType } }));

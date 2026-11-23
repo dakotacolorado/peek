@@ -12,7 +12,7 @@
 v0.1.0
 
 See what your agents made, wherever you are.
-Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.
+Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB.
 
   ▸ Page      https://peek.example.com/
   ▸ API       https://peek.example.com/api/assets   docs https://peek.example.com/docs/api
@@ -105,7 +105,9 @@ Open peek's address in a browser. `/` is the gallery, newest first, with
 filters for repository, pull request, task, type and text. The filters are
 kept in the address, so `/?repo=owner/name&pr=12` is a link to one pull
 request's files. `/a/<id>` (an asset's `link`) shows an image fitted to the
-screen, or plays a video or audio file in the page, with what the asset is of
+screen, plays a video or audio file in the page, or shows a text file (plain,
+CSV, JSON, YAML, XML, HTML source) as text and a markdown file formatted, up to
+1 MB; a larger text file offers a download. It shows what the asset is of
 and a button to copy its link. Both work on a phone.
 
 Sign in once per browser with a token, in the page's form or by opening a
@@ -118,7 +120,7 @@ signed in for 90 days, or until that token is revoked.
 - **Signing in.** Every call but `/health`, `PutUpload`, the docs and the
   viewer page takes `Authorization: Bearer <token>`. A browser signs in once
   (`POST /api/session`, or opening a link that ends `#signin=<token>`), which
-  sets a cookie for 90 days, so images, videos and audio load in the page. A write
+  sets a cookie for 90 days, so images, videos, audio and text load in the page. A write
   signed in by the cookie alone must also send `x-peek: 1`.
 - **Who uploaded it.** An asset's `createdBy` is the `x-actor` header the
   upload sent, else the token's name.

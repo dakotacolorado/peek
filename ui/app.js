@@ -1,6 +1,7 @@
 // peek's page: the gallery at /, filtered by the address's query, and the viewer at /a/<id>.
 // A shell, the same for every asset and holding no data: it signs the browser in, then fetches
 // what it shows. Every element is made with `h`, which sets text, never HTML.
+import { renderMarkdown, textKindOf } from "./markdown.js";
 import { LETTERS, MARK_PIXELS, SUMMARY, TAGLINE } from "./banner.js";
 
 const $ = (id) => document.getElementById(id);
@@ -83,6 +84,8 @@ const kindOf = (asset) => asset.contentType.split("/")[0];
 const labelOf = (asset) => asset.title ?? asset.name;
 const fileOf = (asset) => new URL(asset.fileUrl).pathname;
 const downloadOf = (asset) => `${fileOf(asset)}?download=1`;
+/** The largest text asset the viewer fetches and shows; larger ones keep the Download button. */
+const TEXT_VIEW_MAX = 1_000_000;
 const isPicture = (asset) => kindOf(asset) === "image" && asset.contentType !== "image/svg+xml";
 
 function sizeOf(bytes) {
@@ -119,11 +122,19 @@ function query(given, token) {
   return params;
 }
 
+function tileLabel(asset) {
+  const text = textKindOf(asset);
+  if (text === "markdown") return "¶ markdown";
+  if (text) return `≡ ${asset.contentType.split("/")[1].replace(/^x-/, "").replace(/^tab-separated-values$/, "tsv").replace(/^plain$/, "text")}`;
+  const kind = kindOf(asset);
+  return kind === "video" ? "▶ video" : kind === "audio" ? "♪ audio" : asset.contentType;
+}
+
 function tile(asset) {
   const kind = kindOf(asset);
   const preview = isPicture(asset)
     ? h("img", { src: fileOf(asset), alt: "", loading: "lazy" })
-    : h("span", { class: `kind ${kind}` }, kind === "video" ? "▶ video" : kind === "audio" ? "♪ audio" : asset.contentType);
+    : h("span", { class: `kind ${textKindOf(asset) ?? kind}` }, tileLabel(asset));
   const about = [asset.repo && (asset.pr ? `${asset.repo}#${asset.pr}` : asset.repo), new Date(asset.createdAt).toLocaleDateString()].filter(Boolean).join(" · ");
   return h("li", {}, h("a", { href: `/a/${asset.id}` }, h("div", { class: "preview" }, preview), h("span", { class: "label" }, labelOf(asset)), h("span", { class: "about" }, about)));
 }
@@ -167,13 +178,29 @@ $("more").addEventListener("click", () => {
 
 // The viewer.
 
+const downloadButton = (asset) => h("a", { href: downloadOf(asset), download: asset.name, class: "button" }, `Download ${asset.name}`);
+
+/** A text asset's contents: markdown formatted, other text preformatted. Too large, unsized or unfetchable ones offer the download. */
+async function textView(asset, kind) {
+  if (asset.size === null || asset.size > TEXT_VIEW_MAX) return h("div", {}, downloadButton(asset), h("p", { class: "note" }, `This file is too large to show here (over ${sizeOf(TEXT_VIEW_MAX)}, or of unknown size): download it.`));
+  try {
+    const res = await fetch(fileOf(asset));
+    if (!res.ok) throw new Error(`peek answered ${res.status}.`);
+    const text = await res.text();
+    return kind === "markdown" ? renderMarkdown(text) : h("pre", { class: "text" }, text);
+  } catch (err) {
+    say(`Could not show this file: ${err.message}`);
+    return downloadButton(asset);
+  }
+}
+
 function media(asset) {
   const file = fileOf(asset);
   const kind = kindOf(asset);
   if (isPicture(asset)) return h("a", { href: file, target: "_blank", title: "Full size" }, h("img", { src: file, alt: labelOf(asset) }));
   if (kind === "video") return h("video", { src: file, controls: true, playsinline: true, preload: "metadata" });
   if (kind === "audio") return h("audio", { src: file, controls: true, preload: "metadata" });
-  return h("a", { href: downloadOf(asset), download: asset.name, class: "button" }, `Download ${asset.name}`);
+  return downloadButton(asset);
 }
 
 function detail(term, value) {
@@ -188,7 +215,8 @@ async function viewer(id) {
   const asset = await get(`/api/assets/${id}`);
   if (!asset) return;
   document.title = `${labelOf(asset)} · peek`;
-  $("media").replaceChildren(media(asset));
+  const textKind = textKindOf(asset);
+  $("media").replaceChildren(textKind ? await textView(asset, textKind) : media(asset));
   $("title").textContent = labelOf(asset);
   $("description").textContent = asset.description ?? "";
   $("description").hidden = !asset.description;
@@ -216,7 +244,7 @@ async function viewer(id) {
   );
   $("copy").onclick = () => copy(asset.link);
   $("viewer").hidden = false;
-  say("");
+  if (!$("status").textContent.startsWith("Could not show")) say("");
 }
 
 async function copy(text) {

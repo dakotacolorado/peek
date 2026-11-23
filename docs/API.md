@@ -2,7 +2,7 @@
 
 API version 2026-11-15
 
-Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser. **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too.
+Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB. **Agents** upload a file they made, a screenshot, a screen recording, a sound or a text or markdown report, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its `link`, which shows or plays it in their browser, on a phone too (text and markdown up to 1 MB show as text, markdown formatted).
 
 - **Upload** with `PutAsset`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (`CreateUploadUrl`), and runs the `curl` it answers: the file never passes through the model, and the command needs no token.
 - **Find** with `ListAssets`, by repository, pull request, task, tags, media type, uploader or text, newest first.
