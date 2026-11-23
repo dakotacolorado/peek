@@ -70,3 +70,26 @@ button[type="submit"] { background: var(--ink); color: var(--bg); border-color: 
   #grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
 
+
+#media .text { margin: 0; padding: 12px; background: var(--tile); border-radius: 6px; font: 14px/1.5 ui-monospace, "Cascadia Mono", Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+#media .note { color: var(--muted); margin: 8px 0 0; }
+.kind.markdown, .kind.text { color: var(--accent); }
+.markdown { max-width: 72ch; margin: 0 auto; line-height: 1.6; overflow-wrap: anywhere; }
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 { line-height: 1.25; margin: 1.4em 0 .5em; }
+.markdown h1 { font-size: 1.7em; border-bottom: 1px solid var(--line); padding-bottom: .2em; }
+.markdown h2 { font-size: 1.4em; border-bottom: 1px solid var(--line); padding-bottom: .2em; }
+.markdown h3 { font-size: 1.2em; }
+.markdown h4, .markdown h5, .markdown h6 { font-size: 1em; }
+.markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown pre, .markdown .table-box { margin: 0 0 1em; }
+.markdown ul, .markdown ol { padding-left: 1.6em; }
+.markdown blockquote { padding: 0 1em; border-left: 4px solid var(--field); color: var(--muted); }
+.markdown code { font: .9em ui-monospace, "Cascadia Mono", Menlo, monospace; background: var(--tile); padding: .1em .3em; border-radius: 4px; }
+.markdown pre { overflow-x: auto; background: var(--tile); padding: 12px; border-radius: 6px; }
+.markdown pre code { padding: 0; background: none; white-space: pre; overflow-wrap: normal; }
+.markdown .table-box { overflow-x: auto; }
+.markdown table { border-collapse: collapse; }
+.markdown th, .markdown td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; overflow-wrap: normal; }
+.markdown th { background: var(--tile); }
+.markdown .align-right { text-align: right; }
+.markdown .align-center { text-align: center; }
+.markdown hr { border: 0; border-top: 1px solid var(--line); margin: 1.5em 0; }

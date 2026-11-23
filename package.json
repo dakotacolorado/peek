@@ -1,7 +1,7 @@
 {
   "name": "@dakotajp/peek",
   "version": "0.1.0",
-  "description": "Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.",
+  "description": "Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB.",
   "keywords": [
     "media",
     "files",
@@ -54,6 +54,7 @@
   "devDependencies": {
     "@redocly/cli": "^2.71.1",
     "@types/node": "^24",
+    "happy-dom": "^21.0.4",
     "typescript": "^5.7.2",
     "vitest": "^5.0.5"
   },

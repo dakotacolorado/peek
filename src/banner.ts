@@ -49,7 +49,7 @@ export const WORDMARK = LETTERS.map((line, i) => `${line.padEnd(WIDTH)}  ${MARK[
 /** peek's line, verbatim. */
 export const TAGLINE = "See what your agents made, wherever you are.";
 /** What peek is, in one line. Every place that describes peek in a line uses this or TAGLINE, verbatim. */
-export const SUMMARY = "Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.";
+export const SUMMARY = "Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB.";
 
 /** The pixel mark as an SVG drawn from its grid, in the current color: beside the block letters. */
 export const MARK_PIXEL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 ${MARK_PIXELS[0]!.length} ${MARK_PIXELS.length}" shape-rendering="crispEdges" fill="currentColor">${MARK_PIXELS.flatMap((row, y) =>

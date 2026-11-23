@@ -109,6 +109,13 @@ const TYPES: Record<string, string> = {
   ".json": "application/json",
   ".html": "text/html",
   ".csv": "text/csv",
+  ".markdown": "text/markdown",
+  ".log": "text/plain",
+  ".tsv": "text/tab-separated-values",
+  ".yaml": "application/yaml",
+  ".yml": "application/yaml",
+  ".ndjson": "application/x-ndjson",
+  ".jsonl": "application/x-ndjson",
 };
 
 /** Content types that say nothing of the file: what `fetch` or `curl --data-binary` send when not told. */

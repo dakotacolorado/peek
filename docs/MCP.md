@@ -2,7 +2,7 @@
 
 <!-- Generated from src/mcp.ts by `npm run spec`; do not edit. -->
 
-peek keeps the images, videos and audio an agent makes on its host, and serves each back by a link that plays in the person's browser. Its MCP server is for agents: upload a file, small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. It is served at `/mcp` (streamable HTTP, stateless, answering JSON), under a token from `peek token create <name>`; each tool is one API request made with it, so it is refused and answered as that request would be. A refusal comes back as the tool's error, in the API's words.
+peek keeps the images, videos, audio, text and markdown an agent makes on its host, and serves each back by a link that plays or shows it in the person's browser (text and markdown up to 1 MB). Its MCP server is for agents: upload a file, small ones inline and large ones by a single-use upload URL that `curl` sends from the shell, and give the person its link; find, change and delete what was uploaded. It is served at `/mcp` (streamable HTTP, stateless, answering JSON), under a token from `peek token create <name>`; each tool is one API request made with it, so it is refused and answered as that request would be. A refusal comes back as the tool's error, in the API's words.
 
 ```json
 {
@@ -22,7 +22,7 @@ peek keeps the images, videos and audio an agent makes on its host, and serves e
 
 What the server tells an agent when it connects:
 
-> peek: See what your agents made, wherever you are. It keeps the images, videos and audio you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording or a sound you want the person to see or hear, and give them its link (in a PR, a task comment or a message) instead of attaching the file.
+> peek: See what your agents made, wherever you are. It keeps the images, videos, audio, text and markdown you make, on this host, and gives each a link that shows or plays it in the person's browser, on their phone too. Upload a screenshot, a screen recording, a sound or a report you want the person to see or hear or read: a `.md` report gets a link that shows it formatted, a `.txt`, `.csv` or `.json` file one that shows it as text (up to 1 MB; larger text offers a download), and give them its link (in a PR, a task comment or a message) instead of attaching the file.
 >
 > - upload_asset takes the file's name and what it is for: repo (owner/name) and pr, task (a waypoint short id), title, tags. Give content (the file in base64) only for a small file, up to a few MB. For anything larger, give no content: it answers an uploadUrl and the exact curl command to run in your shell, which needs no token and works once, within the hour. Either way it answers the asset's link.
 > - Give the person link, never fileUrl: link is the page that plays it.
@@ -42,7 +42,7 @@ What the server tells an agent when it connects:
 
 ### upload_asset
 
-Keeps a file and answers its `link`, the page that shows or plays it, to give the person. With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.
+Keeps a file and answers its `link`, the page that shows or plays it, to give the person (a `.md` file shows formatted, other text as text, up to 1 MB). With `content` (base64, for a small file) it is stored now and the asset answered. Without it, answers an `uploadUrl` and the `curl` command that uploads the file from your shell: run it with `<file>` replaced by the file's path. It needs no token, works once within the hour, and answers the asset; the `link` answered now works once it has run.
 
 | Input | Type | Required | |
 | --- | --- | --- | --- |

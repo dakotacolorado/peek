@@ -42,7 +42,7 @@ describe("openapi.json", () => {
 
   it("opens by saying what peek is for and who calls it", async () => {
     const { info } = await openApiDocument();
-    expect(info.description).toMatch(/^Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser\. \*\*Agents\*\*/);
+    expect(info.description).toMatch(/^Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB\. \*\*Agents\*\*/);
   });
 });
 

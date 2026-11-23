@@ -22,7 +22,7 @@ export const API_VERSION = "2026-11-15";
 export const SESSION_COOKIE = "peek_session";
 
 /** The API's overview, at the top of its reference. Markdown. */
-export const OVERVIEW = `${SUMMARY} **Agents** upload a file they made, a screenshot, a screen recording or a sound, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too.
+export const OVERVIEW = `${SUMMARY} **Agents** upload a file they made, a screenshot, a screen recording, a sound or a text or markdown report, saying what it is for (a repository and pull request, a waypoint task, tags), and give **the person** its \`link\`, which shows or plays it in their browser, on a phone too (text and markdown up to 1 MB show as text, markdown formatted).
 
 - **Upload** with \`PutAsset\`: the file's bytes are the request body, streamed to disk, so a several-GB video works. An agent with only the MCP server asks for an upload URL instead (\`CreateUploadUrl\`), and runs the \`curl\` it answers: the file never passes through the model, and the command needs no token.
 - **Find** with \`ListAssets\`, by repository, pull request, task, tags, media type, uploader or text, newest first.
@@ -292,6 +292,7 @@ export class PeekApi {
     this.hono.get("/", shell);
     this.hono.get("/a/:id", shell);
     this.hono.get("/ui/app.js", page("ui/app.js", "text/javascript"));
+    this.hono.get("/ui/markdown.js", page("ui/markdown.js", "text/javascript"));
     this.hono.get("/ui/style.css", page("ui/style.css", "text/css"));
     // The page's words and mark are banner.ts's own, so the terminal, the page and the tab cannot differ.
     const words = Object.entries({ LETTERS: LETTERS_ONLY, MARK_PIXELS, TAGLINE, SUMMARY }).map(([name, value]) => `export const ${name} = ${JSON.stringify(value)};\n`).join("");

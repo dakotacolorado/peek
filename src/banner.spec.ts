@@ -8,7 +8,7 @@ const info = { version: "1.2.3", url: "http://127.0.0.1:4810", publicUrl: "https
 describe("banner", () => {
   it("carries the tagline and summary verbatim", () => {
     expect(TAGLINE).toBe("See what your agents made, wherever you are.");
-    expect(SUMMARY).toBe("Keeps an agent's images, videos and audio where it made them, and serves them back by a link that plays in the browser.");
+    expect(SUMMARY).toBe("Keeps an agent's images, videos, audio, text and markdown where it made them, and serves them back by a link that plays or shows them in the browser, text up to 1 MB.");
   });
 
   it("is workplace-ui's eye, blue on the page and in the tab", () => {

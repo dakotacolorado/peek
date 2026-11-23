@@ -32,6 +32,7 @@ describe("contentTypeOf", () => {
     for (const given of [undefined, null, "", "application/octet-stream", "application/x-www-form-urlencoded", "not a type"]) expect(contentTypeOf("clip.MP4", given)).toBe("video/mp4");
     expect(contentTypeOf("tone.mp3", undefined)).toBe("audio/mpeg");
     expect(contentTypeOf("shot.png", undefined)).toBe("image/png");
+    for (const [name, type] of [["a.markdown", "text/markdown"], ["a.log", "text/plain"], ["a.tsv", "text/tab-separated-values"], ["a.yaml", "application/yaml"], ["a.yml", "application/yaml"], ["a.ndjson", "application/x-ndjson"], ["a.jsonl", "application/x-ndjson"]]) expect(contentTypeOf(name!, undefined)).toBe(type);
   });
 
   it("falls back to application/octet-stream", () => {
